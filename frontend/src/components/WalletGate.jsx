@@ -1,0 +1,133 @@
+import React, { useState } from 'react';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { Wallet, PenLine, UserRound, ArrowRight, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
+import { Input } from './ui/input';
+import { useAuth } from '../context/AuthContext';
+import { errMsg } from '../lib/api';
+
+const Step = ({ n, title, text, active, done, children }) => (
+  <div className={`border-t-2 pt-5 ${active || done ? 'border-[var(--ink)]' : 'border-[var(--line)]'} ${!active && !done ? 'opacity-50' : ''}`}>
+    <div className="flex items-center gap-3">
+      <span className={`font-pixel flex h-8 w-8 items-center justify-center text-[11px] ${done ? 'bg-[var(--ink)] text-[var(--paper)]' : 'border-2 border-[var(--ink)]'}`}>{n}</span>
+      <div className="font-pixel text-[12px]">{title}</div>
+    </div>
+    <p className="mt-3 text-[14px] leading-6 text-[var(--ink-soft)]">{text}</p>
+    <div className="mt-4">{children}</div>
+  </div>
+);
+
+export const UsernameForm = ({ onDone }) => {
+  const { setUsername } = useAuth();
+  const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setErr('');
+    try {
+      await setUsername(name);
+      onDone && onDone();
+    } catch (ex) {
+      setErr(errMsg(ex));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-3 sm:flex-row" data-testid="username-form">
+      <Input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="e.g. pixel_striker"
+        maxLength={16}
+        className="font-mono h-12 rounded-none border-2 border-[var(--ink)] bg-[var(--paper)] text-[14px] tracking-wider"
+        data-testid="username-input"
+      />
+      <button type="submit" disabled={busy || name.trim().length < 3} className="btn-ink" data-testid="username-submit">
+        {busy ? <Loader2 size={14} className="animate-spin" /> : <UserRound size={14} />} SAVE NAME
+      </button>
+      {err && <div className="font-mono text-[12px] text-red-700 sm:self-center" data-testid="username-error">{err}</div>}
+    </form>
+  );
+};
+
+// Full gate panel: connect -> sign -> username
+const WalletGate = ({ title = 'Connect to play', subtitle }) => {
+  const { user, isConnected, signIn, signing, error, loading } = useAuth();
+  const signed = !!user;
+  const named = !!user?.username;
+
+  return (
+    <div className="frame-card mx-auto w-full max-w-2xl p-6 md:p-10" data-testid="wallet-gate">
+      <div className="label mb-3">Wallet Checkpoint</div>
+      <h2 className="font-pixel text-[16px] leading-relaxed md:text-[20px]">{title}</h2>
+      {subtitle && <p className="mt-3 text-[15px] leading-7 text-[var(--ink-soft)]">{subtitle}</p>}
+
+      <div className="mt-8 space-y-8">
+        <Step n="1" title="Connect Wallet" text="Connect your wallet on Robinhood Chain (ETH). No transaction, no gas." active={!isConnected} done={isConnected}>
+          <div className="flex items-center gap-4" data-testid="gate-connect">
+            <ConnectButton chainStatus="icon" showBalance={false} accountStatus="address" />
+          </div>
+        </Step>
+        <Step n="2" title="Sign In" text="Sign a short message to prove you own this wallet. Free, off-chain." active={isConnected && !signed} done={signed}>
+          {!signed && (
+            <button onClick={signIn} disabled={!isConnected || signing || loading} className="btn-ink" data-testid="gate-sign-btn">
+              {signing ? <Loader2 size={14} className="animate-spin" /> : <PenLine size={14} />} SIGN IN WITH WALLET
+            </button>
+          )}
+          {signed && <div className="font-mono text-[12px] tracking-wider text-[var(--ink-soft)]">Signed in as {user.address.slice(0, 6)}...{user.address.slice(-4)}</div>}
+          {error && <div className="font-mono mt-3 text-[12px] text-red-700" data-testid="gate-error">{error}</div>}
+        </Step>
+        <Step n="3" title="Pick a Username" text="This is the name other players will see on the leaderboard." active={signed && !named} done={named}>
+          {signed && !named && <UsernameForm />}
+          {named && <div className="font-pixel text-[12px]">@{user.username}</div>}
+        </Step>
+      </div>
+    </div>
+  );
+};
+
+export const UsernameDialog = () => {
+  const { user } = useAuth();
+  const open = !!user && !user.username;
+  return (
+    <Dialog open={open}>
+      <DialogContent className="rounded-none border-2 border-[var(--ink)] bg-[var(--paper-2)] sm:max-w-md" data-testid="username-dialog">
+        <DialogHeader>
+          <DialogTitle className="font-pixel text-[14px] leading-relaxed">Choose your username</DialogTitle>
+          <DialogDescription className="text-[14px] leading-6 text-[var(--ink-soft)]">
+            3-16 characters, letters, numbers and underscores. Shown on the leaderboard and in every match.
+          </DialogDescription>
+        </DialogHeader>
+        <UsernameForm />
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export const ConnectPill = () => {
+  const { user, logout } = useAuth();
+  if (user?.username) {
+    return (
+      <div className="flex items-center gap-3" data-testid="nav-user-pill">
+        <div className="font-mono hidden items-center gap-2 border border-[var(--ink)] px-3 py-1.5 text-[11px] tracking-widest sm:flex">
+          <Wallet size={12} /> @{user.username} &middot; {user.points} PTS
+        </div>
+        <button onClick={logout} className="nav-link text-[11px]" data-testid="nav-logout">Log out</button>
+      </div>
+    );
+  }
+  return (
+    <ConnectButton.Custom>
+      {({ openConnectModal, account, mounted }) => (
+        <button onClick={openConnectModal} className="btn-outline !px-4 !py-2.5 !text-[10px]" data-testid="nav-connect-btn" disabled={!mounted}>
+          <Wallet size={12} /> {account ? 'SIGN IN' : 'CONNECT'} <ArrowRight size={12} />
+        </button>
+      )}
+    </ConnectButton.Custom>
+  );
+};
+
+export default WalletGate;
