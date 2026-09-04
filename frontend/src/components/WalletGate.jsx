@@ -82,21 +82,24 @@ const WalletGate = ({ title = 'Connect to play', subtitle }) => {
       <EmbeddedNotice />
 
       <div className="mt-8 space-y-8">
-        <Step n="1" title="Connect Wallet" text="Connect your wallet on Robinhood Chain (ETH). No transaction, no gas." active={!isConnected} done={isConnected}>
-          <div className="flex items-center gap-4" data-testid="gate-connect">
+        <Step n="1" title="Connect Wallet" text="Approve the connection in your wallet on Robinhood Chain (ETH). That single approval logs you in. No transaction, no gas." active={!signed} done={signed}>
+          <div className="flex flex-wrap items-center gap-4" data-testid="gate-connect">
             <ConnectButton chainStatus="icon" showBalance={false} accountStatus="address" />
+            {isConnected && !signed && (signing || loading) && (
+              <span className="font-mono flex items-center gap-2 text-[11px] tracking-widest text-[var(--ink-soft)]" data-testid="gate-logging-in">
+                <Loader2 size={12} className="animate-spin" /> LOGGING IN
+              </span>
+            )}
           </div>
-        </Step>
-        <Step n="2" title="Sign In" text="Sign a short message to prove you own this wallet. Free, off-chain." active={isConnected && !signed} done={signed}>
-          {!signed && (
-            <button onClick={signIn} disabled={!isConnected || signing || loading} className="btn-ink" data-testid="gate-sign-btn">
-              {signing ? <Loader2 size={14} className="animate-spin" /> : <PenLine size={14} />} SIGN IN WITH WALLET
-            </button>
+          {signed && <div className="font-mono mt-3 text-[12px] tracking-wider text-[var(--ink-soft)]">Logged in as {user.address.slice(0, 6)}...{user.address.slice(-4)}</div>}
+          {error && (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <span className="font-mono text-[12px] text-red-700" data-testid="gate-error">{error}</span>
+              <button onClick={signIn} className="btn-outline !px-3 !py-2 !text-[9px]" data-testid="gate-retry-btn"><PenLine size={11} /> RETRY</button>
+            </div>
           )}
-          {signed && <div className="font-mono text-[12px] tracking-wider text-[var(--ink-soft)]">Signed in as {user.address.slice(0, 6)}...{user.address.slice(-4)}</div>}
-          {error && <div className="font-mono mt-3 text-[12px] text-red-700" data-testid="gate-error">{error}</div>}
         </Step>
-        <Step n="3" title="Pick a Username" text="This is the name other players will see on the leaderboard." active={signed && !named} done={named}>
+        <Step n="2" title="Pick a Username" text="This is the name other players will see on the leaderboard." active={signed && !named} done={named}>
           {signed && !named && <UsernameForm />}
           {named && <div className="font-pixel text-[12px]">@{user.username}</div>}
         </Step>
@@ -139,7 +142,7 @@ export const ConnectPill = () => {
     <ConnectButton.Custom>
       {({ openConnectModal, account, mounted }) => (
         <button onClick={openConnectModal} className="btn-outline !px-4 !py-2.5 !text-[10px]" data-testid="nav-connect-btn" disabled={!mounted}>
-          <Wallet size={12} /> {account ? 'SIGN IN' : 'CONNECT'} <ArrowRight size={12} />
+          <Wallet size={12} /> {account ? 'LOGGING IN' : 'CONNECT'} <ArrowRight size={12} />
         </button>
       )}
     </ConnectButton.Custom>

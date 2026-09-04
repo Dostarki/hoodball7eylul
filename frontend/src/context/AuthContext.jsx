@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useAccount, useChainId, useDisconnect, useSignMessage, useSwitchChain } from 'wagmi';
+import { useAccount, useChainId, useDisconnect, useSwitchChain } from 'wagmi';
 import { api, TOKEN_KEY, errMsg } from '../lib/api';
 import { robinhood } from '../web3/config';
 
@@ -9,7 +9,6 @@ export const AuthProvider = ({ children }) => {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
-  const { signMessageAsync } = useSignMessage();
   const { disconnect } = useDisconnect();
 
   const [user, setUser] = useState(null);
@@ -42,29 +41,50 @@ export const AuthProvider = ({ children }) => {
     if (!isConnected || (address && address.toLowerCase() !== user.address)) logout();
   }, [isConnected, address, user, logout]);
 
+  // wallet connected -> log in automatically (connection approval = login)
+  useEffect(() => {
+    if (loading || signing || !isConnected || !address) return;
+    if (user && user.address === address.toLowerCase()) return;
+    let cancelled = false;
+    (async () => {
+      setSigning(true);
+      setError('');
+      try {
+        const res = await api.post('/auth/connect', { address });
+        if (cancelled) return;
+        localStorage.setItem(TOKEN_KEY, res.data.token);
+        setUser(res.data.user);
+        if (chainId !== robinhood.id) {
+          switchChainAsync({ chainId: robinhood.id }).catch(() => {});
+        }
+      } catch (e) {
+        if (!cancelled) setError(errMsg(e, 'Login failed'));
+      } finally {
+        if (!cancelled) setSigning(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, address, loading]);
+
+  // manual retry (same connection-based login, no signature)
   const signIn = useCallback(async () => {
     if (!isConnected || !address) return;
     setSigning(true);
     setError('');
     try {
-      if (chainId !== robinhood.id) {
-        try {
-          await switchChainAsync({ chainId: robinhood.id });
-        } catch (e) {
-          // some wallets reject silently; continue, signature does not need the chain
-        }
-      }
-      const { data } = await api.get('/auth/nonce', { params: { address, domain: window.location.host } });
-      const signature = await signMessageAsync({ message: data.message });
-      const res = await api.post('/auth/verify', { address, message: data.message, signature });
+      const res = await api.post('/auth/connect', { address });
       localStorage.setItem(TOKEN_KEY, res.data.token);
       setUser(res.data.user);
+      if (chainId !== robinhood.id) switchChainAsync({ chainId: robinhood.id }).catch(() => {});
     } catch (e) {
-      setError(errMsg(e, 'Sign-in failed'));
+      setError(errMsg(e, 'Login failed'));
     } finally {
       setSigning(false);
     }
-  }, [isConnected, address, chainId, switchChainAsync, signMessageAsync]);
+  }, [isConnected, address, chainId, switchChainAsync]);
 
   const setUsername = useCallback(async (username) => {
     const { data } = await api.put('/me/username', { username });

@@ -215,6 +215,32 @@ async def get_nonce(address: str, domain: str):
     return {'nonce': nonce, 'message': message}
 
 
+class ConnectBody(BaseModel):
+    address: str
+
+
+async def get_or_create_user(address: str) -> dict:
+    user = await db.users.find_one({'address': address})
+    if not user:
+        user = {
+            'id': str(uuid.uuid4()), 'address': address, 'username': None, 'character_id': 'arc',
+            'points': 0, 'wins': 0, 'draws': 0, 'losses': 0, 'goals_for': 0, 'goals_against': 0,
+            'matches': 0, 'created_at': now(),
+        }
+        await db.users.insert_one(user)
+    return user
+
+
+@api.post('/auth/connect')
+async def connect(body: ConnectBody):
+    """Wallet connection = login (no extra signature step)."""
+    if not re.match(r'^0x[a-fA-F0-9]{40}$', body.address):
+        raise HTTPException(400, 'Invalid address')
+    address = body.address.lower()
+    user = await get_or_create_user(address)
+    return {'token': make_token(address), 'user': public_user(user)}
+
+
 @api.post('/auth/verify')
 async def verify(body: VerifyBody):
     address = body.address.lower()
@@ -228,14 +254,7 @@ async def verify(body: VerifyBody):
     if recovered.lower() != address:
         raise HTTPException(401, 'Signer mismatch')
     await db.nonces.delete_one({'_id': pending['_id']})
-    user = await db.users.find_one({'address': address})
-    if not user:
-        user = {
-            'id': str(uuid.uuid4()), 'address': address, 'username': None, 'character_id': 'arc',
-            'points': 0, 'wins': 0, 'draws': 0, 'losses': 0, 'goals_for': 0, 'goals_against': 0,
-            'matches': 0, 'created_at': now(),
-        }
-        await db.users.insert_one(user)
+    user = await get_or_create_user(address)
     return {'token': make_token(address), 'user': public_user(user)}
 
 
