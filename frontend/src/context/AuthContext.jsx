@@ -6,7 +6,7 @@ import { robinhood } from '../web3/config';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, status } = useAccount();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { disconnect } = useDisconnect();
@@ -35,11 +35,12 @@ export const AuthProvider = ({ children }) => {
       .finally(() => setLoading(false));
   }, [logout]);
 
-  // wallet switched / disconnected -> drop session that doesn't match
+  // wallet switched / disconnected -> drop session that doesn't match (ignore while wagmi is still reconnecting)
   useEffect(() => {
     if (!user) return;
+    if (status === 'reconnecting' || status === 'connecting') return;
     if (!isConnected || (address && address.toLowerCase() !== user.address)) logout();
-  }, [isConnected, address, user, logout]);
+  }, [isConnected, address, status, user, logout]);
 
   // wallet connected -> log in automatically (connection approval = login)
   useEffect(() => {

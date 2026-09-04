@@ -258,13 +258,85 @@ const Match = ({ setup, mode, user, setUser }) => {
   );
 };
 
+// ---- matchmaking screen: random 5-10s search, then reveal ----
+const Matchmaking = ({ setup, user, onDone }) => {
+  const [elapsed, setElapsed] = useState(0);
+  const [found, setFound] = useState(false);
+  const totalRef = useRef(5 + Math.random() * 5); // seconds
+  const online = useRef(120 + Math.floor(Math.random() * 300));
+
+  useEffect(() => {
+    const start = performance.now();
+    let raf;
+    const tick = () => {
+      const t = (performance.now() - start) / 1000;
+      setElapsed(t);
+      if (t >= totalRef.current) {
+        setFound(true);
+        return;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  useEffect(() => {
+    if (!found) return;
+    const id = setTimeout(onDone, 1800);
+    return () => clearTimeout(id);
+  }, [found, onDone]);
+
+  const dots = '.'.repeat((Math.floor(elapsed * 2) % 3) + 1);
+  const pct = Math.min(100, (elapsed / totalRef.current) * 100);
+
+  return (
+    <div className="mx-auto flex min-h-[70vh] max-w-[720px] items-center px-5" data-testid="matchmaking-screen">
+      <div className="frame-card w-full p-8 text-center md:p-12">
+        <div className="label mb-4">{setup.arena.name} &middot; {online.current} players online</div>
+        <h2 className="font-pixel text-[16px] leading-relaxed md:text-[20px]" data-testid="matchmaking-title">
+          {found ? 'OPPONENT FOUND' : `FINDING PLAYER${dots}`}
+        </h2>
+
+        <div className="mt-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+          <div className="flex flex-col items-center gap-3">
+            <PixelSprite bitmap={setup.playerChar.bitmap} scale={6} ink="var(--ink)" />
+            <div className="font-pixel text-[11px]">@{user.username}</div>
+          </div>
+          <div className="font-pixel text-[18px] text-[var(--ink-soft)]">VS</div>
+          <div className="flex flex-col items-center gap-3">
+            <div className={`bg-[var(--ink)] p-1 ${found ? '' : 'opacity-20'}`}>
+              {found ? (
+                <PixelSprite bitmap={setup.botChar.bitmap} scale={6} ink="var(--paper)" flip />
+              ) : (
+                <div className="flex h-[84px] w-[72px] items-center justify-center font-pixel text-[26px] text-[var(--paper)] blink">?</div>
+              )}
+            </div>
+            <div className="font-pixel text-[11px]" data-testid="matchmaking-opponent">{found ? `@${setup.opp.username}` : '???'}</div>
+          </div>
+        </div>
+
+        <div className="mt-10 h-3 w-full border-2 border-[var(--ink)] bg-[var(--paper)]">
+          <div className="h-full bg-[var(--ink)]" style={{ width: `${pct}%`, transition: 'width 120ms linear' }} />
+        </div>
+        <div className="font-mono mt-3 flex justify-between text-[11px] tracking-widest text-[var(--ink-soft)]">
+          <span>{found ? 'MATCH STARTING' : 'SEARCHING NEARBY LOBBIES'}</span>
+          <span>{elapsed.toFixed(1)}s</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ---- page wrapper: gate + setup fetch ----
 const Game = () => {
   const [params] = useSearchParams();
   const { ready, user, setUser, loading } = useAuth();
   const mode = params.get('mode') === 'league' ? 'league' : 'quick';
   const [setup, setSetup] = useState(null);
+  const [matched, setMatched] = useState(false);
   const [err, setErr] = useState('');
+  const onMatched = useCallback(() => setMatched(true), []);
 
   useEffect(() => {
     if (!ready) return;
@@ -326,9 +398,10 @@ const Game = () => {
         </div>
       )}
       {!err && !setup && (
-        <div className="font-mono flex min-h-[60vh] items-center justify-center gap-3 text-[12px] tracking-widest text-[var(--ink-soft)]"><Loader2 className="animate-spin" size={14} /> FINDING OPPONENT</div>
+        <div className="font-mono flex min-h-[60vh] items-center justify-center gap-3 text-[12px] tracking-widest text-[var(--ink-soft)]"><Loader2 className="animate-spin" size={14} /> CONNECTING TO LOBBY</div>
       )}
-      {setup && <Match setup={setup} mode={mode} user={user} setUser={setUser} />}
+      {setup && !matched && <Matchmaking setup={setup} user={user} onDone={onMatched} />}
+      {setup && matched && <Match setup={setup} mode={mode} user={user} setUser={setUser} />}
     </main>
   );
 };
