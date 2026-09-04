@@ -1,10 +1,25 @@
 import React, { useState } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { Wallet, PenLine, UserRound, ArrowRight, Loader2 } from 'lucide-react';
+import { Wallet, PenLine, UserRound, ArrowRight, Loader2, ExternalLink } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { Input } from './ui/input';
 import { useAuth } from '../context/AuthContext';
 import { errMsg } from '../lib/api';
+import { isEmbedded } from '../web3/config';
+
+const EmbeddedNotice = () => {
+  if (!isEmbedded()) return null;
+  return (
+    <div className="mt-6 flex flex-col gap-3 border-2 border-[var(--ink)] bg-[var(--paper)] p-4 sm:flex-row sm:items-center sm:justify-between" data-testid="embedded-notice">
+      <p className="font-mono text-[12px] leading-5 tracking-wider">
+        Browser wallet extensions may not open inside this embedded preview. Open the app in its own tab to connect.
+      </p>
+      <a href={window.location.href} target="_blank" rel="noreferrer" className="btn-outline shrink-0 !px-4 !py-3 !text-[10px]" data-testid="open-new-tab-btn">
+        OPEN IN NEW TAB <ExternalLink size={12} />
+      </a>
+    </div>
+  );
+};
 
 const Step = ({ n, title, text, active, done, children }) => (
   <div className={`border-t-2 pt-5 ${active || done ? 'border-[var(--ink)]' : 'border-[var(--line)]'} ${!active && !done ? 'opacity-50' : ''}`}>
@@ -64,6 +79,7 @@ const WalletGate = ({ title = 'Connect to play', subtitle }) => {
       <div className="label mb-3">Wallet Checkpoint</div>
       <h2 className="font-pixel text-[16px] leading-relaxed md:text-[20px]">{title}</h2>
       {subtitle && <p className="mt-3 text-[15px] leading-7 text-[var(--ink-soft)]">{subtitle}</p>}
+      <EmbeddedNotice />
 
       <div className="mt-8 space-y-8">
         <Step n="1" title="Connect Wallet" text="Connect your wallet on Robinhood Chain (ETH). No transaction, no gas." active={!isConnected} done={isConnected}>
