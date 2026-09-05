@@ -14,6 +14,7 @@
 - 2026-06: Backend /api → 200 OK
 - 2026-06: Frontend WalletConnect projectId hatası giderildi – `.env`'e PLACEHOLDER projectId eklendi; ana sayfa render oluyor
 
+- 2026-06: Kullanıcının Reown Dashboard'dan aldığı gerçek WalletConnect Project ID `.env`'e eklendi (placeholder kaldırıldı)
+
 ## Notlar / Backlog
-- P1: Gerçek WalletConnect Project ID (cloud.reown.com) → `REACT_APP_WALLETCONNECT_PROJECT_ID` (şu an placeholder; QR/mobil cüzdanlar çalışmaz, tarayıcı cüzdanları çalışır)
 - P2: `ETHERSCAN_API_KEY` backend .env'e eklenmeli (opsiyonel, VIP tier / tx verisi)
