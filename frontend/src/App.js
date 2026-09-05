@@ -3,6 +3,7 @@ import './App.css';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import PixelMesh from './components/PixelMesh';
 import { UsernameDialog } from './components/WalletGate';
 import Home from './pages/Home';
 import League from './pages/League';
@@ -30,6 +31,7 @@ const Layout = () => {
 function App() {
   return (
     <div className="App">
+      <PixelMesh />
       <BrowserRouter>
         <Layout />
       </BrowserRouter>
