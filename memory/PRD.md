@@ -13,6 +13,7 @@
 - 2026-06: Yeşil "meshy pixel" arka plan eklendi — `frontend/src/components/PixelMesh.jsx` (canvas, üstte yoğun aşağı doğru seyrelen yeşil pikseller), `App.js` içine sabit (fixed, z-index -1) olarak yerleştirildi; stil `App.css` `.pixel-mesh`.
 - 2026-06: Ana sayfadaki karakter kartının arkasına yoğun, radyal solan yeşil pixel mesh eklendi (`PixelMesh` `dense radial` prop'ları, `Home.jsx`).
 - 2026-06: Kart arkası mesh çok yoğun hale getirildi ve fare etkileşimi eklendi — pikseller imleçten uzaklaşıp yay etkisiyle geri dönüyor (`PixelMesh.jsx` `RippleMesh`, rAF animasyonu).
+- 2026-06: Dalgalanma tüm sayfa arka planına genişletildi; tıklamada dışa yayılan halka "patlama dalgası" eklendi (`PixelMesh.jsx` tek `useRippleMesh` hook'u, `dense` prop'u kart halesi için).
 
 ## Backlog
 - P1: Gol tekrarı (slow-motion replay)
