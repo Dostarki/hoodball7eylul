@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, Check, Minus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { adminApi, padTicket } from '../../lib/early';
+import { adminApi, padTicket, TIERS, fmtUsd } from '../../lib/early';
 import { errMsg } from '../../lib/api';
 
 const Mark = ({ ok }) => (ok ? <Check size={12} className="mx-auto" /> : <Minus size={12} className="mx-auto opacity-30" />);
@@ -30,6 +30,9 @@ const ParticipantsTable = () => {
             <TableHead className="text-center">F</TableHead>
             <TableHead className="text-center">RT</TableHead>
             <TableHead className="text-center">Q</TableHead>
+            <TableHead>TIER</TableHead>
+            <TableHead className="text-right">VOL</TableHead>
+            <TableHead className="text-right">REFS</TableHead>
             <TableHead className="text-right">PTS</TableHead>
             <TableHead>JOINED</TableHead>
           </TableRow>
@@ -43,6 +46,9 @@ const ParticipantsTable = () => {
               <TableCell><Mark ok={r.tasks.follow} /></TableCell>
               <TableCell><Mark ok={r.tasks.rt} /></TableCell>
               <TableCell><Mark ok={r.tasks.quote} /></TableCell>
+              <TableCell className="font-pixel text-[9px]" style={{ color: r.tier ? TIERS[r.tier].color : 'var(--ink-soft)' }}>{r.tier ? TIERS[r.tier].label : '—'}</TableCell>
+              <TableCell className="text-right text-[11px]">{r.volume_usd != null ? fmtUsd(r.volume_usd) : '—'}</TableCell>
+              <TableCell className="text-right">{r.referrals}{r.referred_by ? <span className="ml-1 text-[10px] text-[var(--ink-soft)]">← @{r.referred_by}</span> : null}</TableCell>
               <TableCell className="text-right">{r.points}</TableCell>
               <TableCell className="text-[var(--ink-soft)]">{new Date(r.created_at).toISOString().slice(0, 10)}</TableCell>
             </TableRow>

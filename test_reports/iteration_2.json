@@ -1,0 +1,27 @@
+{
+  "summary": "Iteration 2 — Referral + VIP + expanded settings tested end-to-end. Backend: 15/15 new pytests pass in test_referral_vip.py (incl. one real Etherscan zero-volume signature check + cooldown). Frontend: verified /?ref=ticketguy ref-banner ('INVITED BY @ticketguy · +25 BONUS ON TICKET'), full 3-task flow -> ticket + 225 PTS badge + referred-by shows 'INVITED BY @ticketguy'; ReferralBox shows link with /?ref=<x>, copy button toggles to COPIED, referral-stats '0 JOINED · +25 PTS'. VipBox: vip-connect-btn, 4-tile tier-ladder (BRONZE/SILVER/GOLD/PLATINUM), RainbowKit modal opens & closes on Escape. Admin /admin (password futbot-admin-2026): all new settings testids present (set-referrer-points, set-referred-points, set-{tier}-min, set-{tier}-points); changing set-referrer-points 50->60->reload persists->saved back to 50; Participants tab shows TIER/VOL/REFS columns; @ticketguy row = GOLD $12,346 2 refs 300 pts (was 250 before I added a referral). /early-list has TIER + REFS columns; #0001 ticketguy=GOLD 2 refs 300 pts, #0002 friend_one=STANDARD.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_referral_vip.py",
+    "/app/backend/tests/test_early_admin.py",
+    "/app/test_reports/pytest/pytest_referral_vip.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "early.py credit_referral: on referred participant, referrer's referral_points is incremented by referrer_points; this is fine semantically (referral_points represents 'points earned from referrals'), but consider that on the referred user, referral_points is also set to referred_points — meaning both sides use the same field name for different sources; documentation-only nit.",
+    "vip_check tier logic uses max(rank(new), rank(old)) — good, prevents downgrade — but this couples vip_wallet/volume_usd/vip_chains to the LATEST check which may not correspond to the tier displayed (best-of). Consider storing the best-tier wallet+volume snapshot too, otherwise UI shows a wallet with lower volume alongside a higher tier badge earned earlier.",
+    "REF_KEY is stored in localStorage in useEffect on mount; if user navigates via SPA link that doesn't remount EarlyAccess, ref won't be captured. Currently mount is on load so OK, but consider capturing ref globally in App.jsx once.",
+    "ReferralBox referrer's referral_points display could double-count if the referred user later completes a daily task (referral_points untouched), fine — verified idempotent."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_referral_vip.py"
+  ],
+  "success_rate": {"backend": "100% (15/15 new + prior 16/16)", "frontend": "100% of tested flows"},
+  "test_credentials": "Admin: futbot-admin-2026. Seeded participants: ticketguy/0x9999... (GOLD, $12,346, now 2 referrals 300 pts after my UI test added one), friend_one/0x1111... (STANDARD, referred by ticketguy, in VIP cooldown).",
+  "seed_data_creation": "Backend pytests created many TEST_ participants (random x/wallet, prefix 't' + hex). UI test added @tstn06itgr4 (#0015, 225 PTS, referred by @ticketguy). ticketguy referral count is now 2 (originally 1).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Run: python -m pytest backend/tests/ -v. New test file: test_referral_vip.py (uses eth_account + one real Etherscan API call ~10s). VIP check honors 10-minute cooldown; if re-testing, use a fresh participant. Frontend testids for new features: ref-banner, referral-box, referred-by, referral-link, referral-copy, referral-share, referral-stats, vip-box, vip-connect-btn, vip-verify-btn, tier-ladder, vip-chains-toggle, vip-chains, early-tier. Admin new fields: set-referrer-points, set-referred-points, set-{bronze,silver,gold,platinum}-{min,points}. Early list columns: TIER + REFS confirmed.",
+  "rca of the issue": "N/A — no bugs found."
+}

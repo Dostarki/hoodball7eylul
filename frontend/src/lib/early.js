@@ -21,3 +21,14 @@ export const tweetIntent = (text, url) =>
   `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}${url ? `&url=${encodeURIComponent(url)}` : ''}`;
 
 export const padTicket = (n) => `#${String(n).padStart(4, '0')}`;
+
+export const TIERS = {
+  bronze: { label: 'BRONZE', color: '#9a6b3f' },
+  silver: { label: 'SILVER', color: '#6f7a85' },
+  gold: { label: 'GOLD', color: '#b08a12' },
+  platinum: { label: 'PLATINUM', color: '#3f7f96' },
+};
+
+export const REF_KEY = 'futbot.ref';
+export const referralLink = (x) => `${window.location.origin}/?ref=${encodeURIComponent(x)}`;
+export const fmtUsd = (v) => `$${Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;

@@ -2,10 +2,16 @@ from fastapi import APIRouter, HTTPException, Depends, Header, Request
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+from eth_account import Account
+from eth_account.messages import encode_defunct
+import asyncio
 import os
 import re
+import time
 import uuid
 import secrets
+import httpx
 import jwt
 
 router = APIRouter(prefix='/api')
@@ -15,6 +21,12 @@ JWT_SECRET = os.environ.get('JWT_SECRET', 'dev-secret-change-me')
 X_RE = re.compile(r'^[A-Za-z0-9_]{1,15}$')
 WALLET_RE = re.compile(r'^0x[a-fA-F0-9]{40}$')
 CORE_TASKS = ('follow', 'rt', 'quote')
+TIERS = ('bronze', 'silver', 'gold', 'platinum')
+ETHERSCAN_URL = 'https://api.etherscan.io/v2/api'
+VIP_CHAINS = [(1, 'Ethereum', 'ETH'), (42161, 'Arbitrum', 'ETH'), (137, 'Polygon', 'POL'), (59144, 'Linea', 'ETH'),
+              (81457, 'Blast', 'ETH'), (100, 'Gnosis', 'xDAI'), (5000, 'Mantle', 'MNT'), (130, 'Unichain', 'ETH')]
+VIP_TX_LIMIT = 100
+VIP_COOLDOWN_MIN = 10
 
 DEFAULT_SETTINGS = {
     'follow_url': 'https://x.com/goalhoodz',
@@ -24,6 +36,10 @@ DEFAULT_SETTINGS = {
     'quote_text': 'I just secured my Early Access ticket for Futbot League - 1-bit head soccer on Robinhood Chain.',
     'quote_url': 'https://x.com/goalhoodz',
     'quote_points': 100,
+    'referrer_points': 50,
+    'referred_points': 25,
+    'bronze_min': 100, 'silver_min': 1000, 'gold_min': 10000, 'platinum_min': 50000,
+    'bronze_points': 25, 'silver_points': 75, 'gold_points': 200, 'platinum_points': 500,
 }
 
 
@@ -85,8 +101,104 @@ def participant_view(p: dict) -> dict:
         'completed': all(tasks.get(t) for t in CORE_TASKS),
         'completed_at': p['completed_at'].isoformat() if p.get('completed_at') else None,
         'daily_done': p.get('daily_done', {}),
+        'referred_by': p.get('referred_by_username'),
+        'referrals': p.get('referrals', 0),
+        'referral_points': p.get('referral_points', 0),
+        'tier': p.get('tier'),
+        'volume_usd': p.get('volume_usd'),
+        'vip_wallet': p.get('vip_wallet'),
+        'vip_chains': p.get('vip_chains', []),
+        'vip_checked_at': p['vip_checked_at'].isoformat() if p.get('vip_checked_at') else None,
         'created_at': p['created_at'].isoformat(),
     }
+
+
+def tier_for(volume: float, s: dict) -> Optional[str]:
+    tier = None
+    for t in TIERS:
+        if volume >= float(s.get(f'{t}_min', 10**12)):
+            tier = t
+    return tier
+
+
+async def credit_referral(p: dict, s: dict) -> dict:
+    """Both sides get a bonus once the referred participant finishes all tasks."""
+    if not p.get('referred_by') or p.get('referral_credited'):
+        return {}
+    ref = await db.early_participants.find_one({'id': p['referred_by']})
+    if not ref:
+        return {}
+    await db.early_participants.update_one(
+        {'id': ref['id']}, {'$inc': {'points': int(s['referrer_points']), 'referrals': 1, 'referral_points': int(s['referrer_points'])}})
+    return {'$inc': {'points': int(s['referred_points']), 'referral_points': int(s['referred_points'])}, '$set': {'referral_credited': True}}
+
+
+class Throttle:
+    def __init__(self):
+        self.lock = asyncio.Lock()
+        self.last = 0.0
+
+    async def wait(self):
+        async with self.lock:
+            delay = 0.5 - (time.monotonic() - self.last)
+            if delay > 0:
+                await asyncio.sleep(delay)
+            self.last = time.monotonic()
+
+
+throttle = Throttle()
+price_cache: dict = {}
+
+
+async def etherscan(client: httpx.AsyncClient, params: dict, retry: int = 2):
+    await throttle.wait()
+    r = await client.get(ETHERSCAN_URL, params={**params, 'apikey': os.environ.get('ETHERSCAN_API_KEY', '')})
+    r.raise_for_status()
+    data = r.json()
+    if str(data.get('status')) != '1':
+        detail = str(data.get('result') or data.get('message') or 'Etherscan error')
+        if 'No transactions found' in detail:
+            return []
+        if 'rate limit' in detail.lower() and retry > 0:
+            await asyncio.sleep(1.1)
+            return await etherscan(client, params, retry - 1)
+        raise RuntimeError(detail)
+    return data['result']
+
+
+async def chain_volume(client, address: str, chain_id: int, name: str, symbol: str) -> dict:
+    try:
+        txs = await etherscan(client, {'chainid': chain_id, 'module': 'account', 'action': 'txlist',
+                                       'address': address, 'page': 1, 'offset': VIP_TX_LIMIT, 'sort': 'desc'})
+        cached = price_cache.get(chain_id)
+        if cached and time.time() - cached[1] < 600:
+            price = cached[0]
+        else:
+            pr = await etherscan(client, {'chainid': chain_id, 'module': 'stats', 'action': 'ethprice'})
+            price = Decimal(str(pr.get('ethusd', '0')))
+            price_cache[chain_id] = (price, time.time())
+        me = address.lower()
+        wei = Decimal(0)
+        n = 0
+        for t in txs if isinstance(txs, list) else []:
+            if str(t.get('isError', '0')) != '0':
+                continue
+            if t.get('from', '').lower() == me or t.get('to', '').lower() == me:
+                wei += Decimal(str(t.get('value') or '0'))
+                n += 1
+        native = wei / Decimal(10 ** 18)
+        return {'chain_id': chain_id, 'chain': name, 'symbol': symbol, 'tx_count': n,
+                'native': float(native), 'usd': float(native * price), 'error': None}
+    except Exception as e:  # noqa: BLE001
+        msg = str(e)
+        return {'chain_id': chain_id, 'chain': name, 'symbol': symbol, 'tx_count': 0, 'native': 0.0, 'usd': 0.0,
+                'error': 'Not available on free plan' if 'Free API' in msg else msg[:120]}
+
+
+async def wallet_volume(address: str) -> dict:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(20.0, connect=5.0)) as client:
+        chains = [await chain_volume(client, address, *c) for c in VIP_CHAINS]
+    return {'total_usd': round(sum(c['usd'] for c in chains), 2), 'chains': chains}
 
 
 def daily_view(t: dict) -> dict:
@@ -100,6 +212,13 @@ def daily_view(t: dict) -> dict:
 class RegisterBody(BaseModel):
     x_username: str
     wallet: str
+    ref: Optional[str] = None
+
+
+class VipCheckBody(BaseModel):
+    address: str
+    message: str
+    signature: str
 
 
 class AdminLoginBody(BaseModel):
@@ -114,6 +233,16 @@ class SettingsBody(BaseModel):
     quote_text: str = Field(max_length=240)
     quote_url: str
     quote_points: int = Field(ge=0, le=100000)
+    referrer_points: int = Field(default=50, ge=0, le=100000)
+    referred_points: int = Field(default=25, ge=0, le=100000)
+    bronze_min: float = Field(default=100, ge=0)
+    silver_min: float = Field(default=1000, ge=0)
+    gold_min: float = Field(default=10000, ge=0)
+    platinum_min: float = Field(default=50000, ge=0)
+    bronze_points: int = Field(default=25, ge=0, le=100000)
+    silver_points: int = Field(default=75, ge=0, le=100000)
+    gold_points: int = Field(default=200, ge=0, le=100000)
+    platinum_points: int = Field(default=500, ge=0, le=100000)
 
 
 class DailyTaskBody(BaseModel):
@@ -148,9 +277,15 @@ async def early_register(body: RegisterBody):
         if taken:
             raise HTTPException(409, 'This X username is already registered with another wallet')
         c = await db.counters.find_one_and_update({'key': 'ticket'}, {'$inc': {'seq': 1}}, upsert=True, return_document=True)
+        referrer = None
+        if body.ref and body.ref.strip().lstrip('@').lower() != x.lower():
+            referrer = await db.early_participants.find_one({'x_username_lc': body.ref.strip().lstrip('@').lower()})
         p = {
             'id': str(uuid.uuid4()), 'ticket_no': c['seq'], 'x_username': x, 'x_username_lc': x.lower(),
             'wallet': wallet, 'points': 0, 'tasks': {}, 'daily_done': {}, 'completed_at': None, 'created_at': now(),
+            'referred_by': referrer['id'] if referrer else None,
+            'referred_by_username': referrer['x_username'] if referrer else None,
+            'referral_credited': False, 'referrals': 0, 'referral_points': 0,
         }
         await db.early_participants.insert_one(p)
     return {'token': make_token(p['id'], 'early', 24 * 30), 'participant': participant_view(p)}
@@ -172,8 +307,65 @@ async def early_complete(task: str, p=Depends(current_participant)):
     done = {**p.get('tasks', {}), task: True}
     if all(done.get(t) for t in CORE_TASKS):
         update['$set']['completed_at'] = now()
+        bonus = await credit_referral(p, s)
+        if bonus:
+            update['$inc']['points'] += bonus['$inc']['points']
+            update['$inc']['referral_points'] = bonus['$inc']['referral_points']
+            update['$set']['referral_credited'] = True
     await db.early_participants.update_one({'id': p['id']}, update)
     return participant_view(await db.early_participants.find_one({'id': p['id']}))
+
+
+@router.get('/early/vip/nonce')
+async def vip_nonce(p=Depends(current_participant)):
+    nonce = secrets.token_hex(8)
+    message = (f"Futbot League VIP ticket check\n\nTicket: #{p['ticket_no']:04d}\nX: @{p['x_username']}\n"
+               f"Nonce: {nonce}\nIssued At: {now().replace(microsecond=0).isoformat()}")
+    await db.nonces.insert_one({'nonce': nonce, 'participant_id': p['id'], 'message': message, 'expires_at': now() + timedelta(minutes=5)})
+    return {'message': message}
+
+
+@router.post('/early/vip/check')
+async def vip_check(body: VipCheckBody, p=Depends(current_participant)):
+    if not p.get('completed_at'):
+        raise HTTPException(400, 'Finish the X tasks and get your ticket first')
+    if not WALLET_RE.match(body.address):
+        raise HTTPException(400, 'Invalid address')
+    if not os.environ.get('ETHERSCAN_API_KEY'):
+        raise HTTPException(503, 'Volume check is not configured')
+    last = p.get('vip_checked_at')
+    if last and last.tzinfo is None:
+        last = last.replace(tzinfo=timezone.utc)
+    if last and now() - last < timedelta(minutes=VIP_COOLDOWN_MIN):
+        wait = VIP_COOLDOWN_MIN - int((now() - last).total_seconds() // 60)
+        raise HTTPException(429, f'Already checked recently. Try again in {wait} min')
+    pending = await db.nonces.find_one({'participant_id': p['id'], 'message': body.message, 'expires_at': {'$gt': now()}})
+    if not pending:
+        raise HTTPException(401, 'Unknown or expired signing request')
+    try:
+        recovered = Account.recover_message(encode_defunct(text=body.message), signature=body.signature)
+    except Exception:
+        raise HTTPException(401, 'Invalid signature')
+    if recovered.lower() != body.address.lower():
+        raise HTTPException(401, 'Signer does not match the connected wallet')
+    await db.nonces.delete_one({'_id': pending['_id']})
+
+    s = await get_settings()
+    vol = await wallet_volume(body.address)
+    new_tier = tier_for(vol['total_usd'], s)
+    rank = {t: i + 1 for i, t in enumerate(TIERS)}
+    old_tier = p.get('tier')
+    best = new_tier if rank.get(new_tier, 0) >= rank.get(old_tier, 0) else old_tier
+    credited = int(p.get('vip_points_credited', 0))
+    target = int(s.get(f'{best}_points', 0)) if best else 0
+    gain = max(0, target - credited)
+    await db.early_participants.update_one({'id': p['id']}, {
+        '$set': {'tier': best, 'volume_usd': vol['total_usd'], 'vip_wallet': body.address.lower(),
+                 'vip_chains': vol['chains'], 'vip_checked_at': now(), 'vip_points_credited': credited + gain},
+        '$inc': {'points': gain},
+    })
+    return {'participant': participant_view(await db.early_participants.find_one({'id': p['id']})),
+            'volume_usd': vol['total_usd'], 'tier': best, 'bonus_points': gain, 'chains': vol['chains']}
 
 
 @router.post('/early/daily/{task_id}/complete')
@@ -195,8 +387,8 @@ async def early_list(limit: int = 200):
     out = []
     for i, p in enumerate(rows):
         v = participant_view(p)
-        v.pop('wallet')
-        v.pop('daily_done')
+        for k in ('wallet', 'daily_done', 'vip_wallet', 'vip_chains', 'volume_usd', 'referred_by'):
+            v.pop(k, None)
         v['rank'] = i + 1
         out.append(v)
     return {'total': total, 'rows': out}

@@ -20,6 +20,11 @@
   - /admin paneli: şifre (`ADMIN_PASSWORD` env) → X görev ayarları (URL/metin/puan), günlük görev CRUD, katılımcı tablosu. 5 hatalı denemede 15 dk kilit.
   - API: /api/early/{config,register,me,tasks/{t}/complete,daily/{id}/complete,list}; /api/admin/{login,me,settings,daily-tasks,participants}
   - Test: /app/test_reports/iteration_1.json — 16/16 backend + tüm frontend akışları geçti.
+- 2026-06 (Referral + VIP Bilet):
+  - Referral: link `/?ref=<x_username>` (`REF_KEY` localStorage). Davet edilen 3 görevi bitirince davet eden +referrer_points (50), davet edilen +referred_points (25); admin ayarlı; tek seferlik.
+  - VIP Bilet: bileti olan RainbowKit ile cüzdan bağlar → `GET /api/early/vip/nonce` → mesaj imzalar → `POST /api/early/vip/check` → Etherscan V2 (`ETHERSCAN_API_KEY`, free tier 3 çağrı/sn) ile 8 EVM zincirde (Ethereum, Arbitrum, Polygon, Linea, Blast, Gnosis, Mantle, Unichain — Base/OP/BNB/Avax free'de kapalı) son 100 tx native gönderim+alım USD hacmi → Bronze ≥$100 / Silver ≥$1k / Gold ≥$10k / Platinum ≥$50k, bonus 25/75/200/500 (admin ayarlı), 10 dk cooldown, kademe sadece yükselir.
+  - Bilet canvas kademeye göre renk bandı + damga; Early List ve admin tablosunda TIER/REFS/VOL kolonları.
+  - Test: /app/test_reports/iteration_2.json — 15/15 backend + frontend geçti.
 
 ## Backlog
 - P1 (kampanya sonrası): `GAME_LOCKED=false` ile oyunu geri aç
@@ -28,3 +33,4 @@
 - P1: Özel takım adı girişi
 - P2: Early List puanlarını oyun içi hesaba (cüzdan eşleşmesi) aktarma
 - P2: Admin şifresini panelden değiştirme
+- P2: VIP hacmine ERC-20 token transferlerini de ekleme (Etherscan tokentx)

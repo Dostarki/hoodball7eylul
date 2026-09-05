@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, Ticket as TicketIcon } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { earlyApi, padTicket, EARLY_TOKEN } from '../lib/early';
+import { earlyApi, padTicket, EARLY_TOKEN, TIERS } from '../lib/early';
 
 const EarlyList = () => {
   const [data, setData] = useState(null);
@@ -56,6 +56,8 @@ const EarlyList = () => {
                   <TableHead className="w-12">#</TableHead>
                   <TableHead>TICKET</TableHead>
                   <TableHead>X</TableHead>
+                  <TableHead>TIER</TableHead>
+                  <TableHead className="hidden sm:table-cell">REFS</TableHead>
                   <TableHead className="hidden sm:table-cell">JOINED</TableHead>
                   <TableHead className="text-right">PTS</TableHead>
                 </TableRow>
@@ -71,6 +73,14 @@ const EarlyList = () => {
                         <a href={`https://x.com/${r.x_username}`} target="_blank" rel="noreferrer" className="hover:underline">@{r.x_username}</a>
                         {mine && <span className="ml-2 bg-[var(--ink)] px-1.5 py-0.5 text-[9px] text-[var(--paper)]">YOU</span>}
                       </TableCell>
+                      <TableCell>
+                        {r.tier ? (
+                          <span className="font-pixel text-[9px]" style={{ color: TIERS[r.tier].color }} data-testid={`tier-${r.ticket_no}`}>{TIERS[r.tier].label}</span>
+                        ) : (
+                          <span className="text-[10px] text-[var(--ink-soft)]">STANDARD</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden text-[var(--ink-soft)] sm:table-cell">{r.referrals}</TableCell>
                       <TableCell className="hidden text-[var(--ink-soft)] sm:table-cell">{new Date(r.completed_at).toISOString().slice(0, 10)}</TableCell>
                       <TableCell className="font-pixel text-right text-[11px]">{r.points}</TableCell>
                     </TableRow>

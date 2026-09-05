@@ -1,4 +1,4 @@
-import { padTicket } from '../../lib/early';
+import { padTicket, TIERS } from '../../lib/early';
 
 const PAPER = '#efede4';
 const INK = '#1c1c22';
@@ -26,6 +26,8 @@ export const drawTicket = (canvas, { participant, character, ballBitmap }) => {
   const ctx = canvas.getContext('2d');
   const W = TICKET_W;
   const H = TICKET_H;
+  const tier = participant.tier ? TIERS[participant.tier] : null;
+  const TIER_COLOR = tier ? tier.color : ACCENT;
   canvas.width = W;
   canvas.height = H;
   ctx.imageSmoothingEnabled = false;
@@ -40,17 +42,33 @@ export const drawTicket = (canvas, { participant, character, ballBitmap }) => {
 
   // scattered accent pixels
   const r = rand(participant.ticket_no * 7 + 13);
-  for (let i = 0; i < 120; i++) {
-    ctx.fillStyle = r() > 0.5 ? ACCENT : INK;
+  for (let i = 0; i < (tier ? 220 : 120); i++) {
+    ctx.fillStyle = r() > 0.5 ? TIER_COLOR : INK;
     ctx.globalAlpha = 0.12 + r() * 0.25;
     ctx.fillRect(Math.floor(r() * W / 8) * 8, Math.floor(r() * H / 8) * 8, 8, 8);
   }
   ctx.globalAlpha = 1;
 
+  // VIP band behind the stub
+  if (tier) {
+    ctx.fillStyle = TIER_COLOR;
+    ctx.globalAlpha = 0.18;
+    ctx.fillRect(884, 48, W - 48 - 884, H - 96);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = TIER_COLOR;
+    ctx.fillRect(24, 24, W - 48, 14);
+    ctx.fillRect(24, H - 38, W - 48, 14);
+  }
+
   // outer frame
   ctx.lineWidth = 8;
-  ctx.strokeStyle = INK;
+  ctx.strokeStyle = tier ? TIER_COLOR : INK;
   ctx.strokeRect(24, 24, W - 48, H - 48);
+  if (tier) {
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = INK;
+    ctx.strokeRect(40, 40, W - 80, H - 80);
+  }
 
   // stub separator (perforation)
   const stubX = 860;
@@ -76,14 +94,14 @@ export const drawTicket = (canvas, { participant, character, ballBitmap }) => {
   ctx.font = '13px "Share Tech Mono"';
   ctx.fillStyle = SOFT;
   ctx.fillText('SEASON 01  ·  ROBINHOOD CHAIN  ·  1-BIT HEAD SOCCER', 72, 66);
-  ctx.fillStyle = ACCENT;
+  ctx.fillStyle = TIER_COLOR;
   ctx.fillRect(72, 100, 12, 12);
   ctx.fillStyle = INK;
   ctx.font = '38px "Press Start 2P"';
   ctx.fillText('FUTBOT LEAGUE', 100, 92);
   ctx.font = '16px "Press Start 2P"';
-  ctx.fillStyle = SOFT;
-  ctx.fillText('EARLY ACCESS TICKET', 72, 152);
+  ctx.fillStyle = tier ? TIER_COLOR : SOFT;
+  ctx.fillText(tier ? `${tier.label} VIP TICKET` : 'EARLY ACCESS TICKET', 72, 152);
 
   // divider
   ctx.fillStyle = INK;
@@ -144,7 +162,7 @@ export const drawTicket = (canvas, { participant, character, ballBitmap }) => {
   ctx.rotate(-Math.PI / 2);
   ctx.font = '26px "Press Start 2P"';
   ctx.fillStyle = INK;
-  ctx.fillText('ADMIT ONE', 0, 0);
+  ctx.fillText(tier ? 'VIP' : 'ADMIT ONE', 0, 0);
   ctx.restore();
 
   drawBitmap(ctx, character.bitmap, 950, 80, 14, INK);
@@ -153,7 +171,25 @@ export const drawTicket = (canvas, { participant, character, ballBitmap }) => {
   ctx.fillText(padTicket(participant.ticket_no), 940, 320);
   ctx.font = '12px "Share Tech Mono"';
   ctx.fillStyle = SOFT;
-  ctx.fillText('EARLY LIST', 940, 352);
+  ctx.fillText(tier ? `${tier.label} · EARLY LIST` : 'EARLY LIST', 940, 352);
+
+  // tier stamp
+  if (tier) {
+    ctx.save();
+    ctx.translate(690, 300);
+    ctx.rotate(-0.22);
+    ctx.globalAlpha = 0.85;
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = TIER_COLOR;
+    ctx.strokeRect(-10, -10, 22 * tier.label.length + 40, 66);
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-2, -2, 22 * tier.label.length + 24, 50);
+    ctx.font = '22px "Press Start 2P"';
+    ctx.fillStyle = TIER_COLOR;
+    ctx.fillText(tier.label, 8, 12);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
 
   // barcode
   const br = rand(participant.ticket_no * 31 + 5);

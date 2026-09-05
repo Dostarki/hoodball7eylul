@@ -50,8 +50,21 @@ const SettingsForm = () => {
       <Field label="Quote text"><Textarea value={s.quote_text} onChange={set('quote_text')} maxLength={240} rows={3} className={cls} data-testid="set-quote-text" /></Field>
       <Field label="Points"><Input type="number" min={0} value={s.quote_points} onChange={set('quote_points')} className={cls} data-testid="set-quote-points" /></Field>
       <Field label="Quote tweet URL (appended to the post)"><Input value={s.quote_url} onChange={set('quote_url')} className={cls} data-testid="set-quote-url" /></Field>
-      <div className="flex items-end">
-        <button type="submit" disabled={busy} className="btn-ink w-full !px-4 !py-3 !text-[10px]" data-testid="settings-save">
+      <div />
+      <div className="label md:col-span-2 mt-4 border-t border-[var(--line)] pt-6">Referral bonus</div>
+      <Field label="Referrer gets (points)"><Input type="number" min={0} value={s.referrer_points} onChange={set('referrer_points')} className={cls} data-testid="set-referrer-points" /></Field>
+      <div />
+      <Field label="Invited friend gets (points)"><Input type="number" min={0} value={s.referred_points} onChange={set('referred_points')} className={cls} data-testid="set-referred-points" /></Field>
+      <div />
+      <div className="label md:col-span-2 mt-4 border-t border-[var(--line)] pt-6">VIP tiers · min volume (USD) → bonus points</div>
+      {['bronze', 'silver', 'gold', 'platinum'].map((t) => (
+        <React.Fragment key={t}>
+          <Field label={`${t} min volume $`}><Input type="number" min={0} value={s[`${t}_min`]} onChange={set(`${t}_min`)} className={cls} data-testid={`set-${t}-min`} /></Field>
+          <Field label="Points"><Input type="number" min={0} value={s[`${t}_points`]} onChange={set(`${t}_points`)} className={cls} data-testid={`set-${t}-points`} /></Field>
+        </React.Fragment>
+      ))}
+      <div className="md:col-span-2 flex justify-end">
+        <button type="submit" disabled={busy} className="btn-ink !px-6 !py-3 !text-[10px]" data-testid="settings-save">
           {busy ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} SAVE
         </button>
       </div>

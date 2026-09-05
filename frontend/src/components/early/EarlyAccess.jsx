@@ -6,7 +6,9 @@ import { Input } from '../ui/input';
 import TaskCard from './TaskCard';
 import Ticket from './Ticket';
 import DailyTasks from './DailyTasks';
-import { earlyApi, EARLY_TOKEN, tweetIntent, padTicket } from '../../lib/early';
+import ReferralBox from './ReferralBox';
+import VipBox from './VipBox';
+import { earlyApi, EARLY_TOKEN, REF_KEY, tweetIntent, padTicket, TIERS } from '../../lib/early';
 import { errMsg } from '../../lib/api';
 
 const Step = ({ n, title, active, done, children }) => (
@@ -31,6 +33,8 @@ const EarlyAccess = () => {
   const [err, setErr] = useState('');
 
   useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get('ref');
+    if (ref) localStorage.setItem(REF_KEY, ref.replace(/^@/, ''));
     earlyApi.get('/early/config').then((r) => setConfig(r.data)).catch(() => {});
     if (localStorage.getItem(EARLY_TOKEN)) {
       earlyApi.get('/early/me').then((r) => setParticipant(r.data)).catch(() => localStorage.removeItem(EARLY_TOKEN));
@@ -42,7 +46,7 @@ const EarlyAccess = () => {
     setBusy(true);
     setErr('');
     try {
-      const { data } = await earlyApi.post('/early/register', { x_username: x, wallet });
+      const { data } = await earlyApi.post('/early/register', { x_username: x, wallet, ref: localStorage.getItem(REF_KEY) || null });
       localStorage.setItem(EARLY_TOKEN, data.token);
       setParticipant(data.participant);
       toast.success(`Welcome @${data.participant.x_username} — ticket ${padTicket(data.participant.ticket_no)} reserved.`);
@@ -99,11 +103,17 @@ const EarlyAccess = () => {
           <p className="mt-3 text-[15px] leading-7 text-[var(--ink-soft)]">Enter your X handle and wallet, finish three X tasks, and mint a pixel match ticket. Points are recorded on the Early List.</p>
         </div>
         {registered && (
-          <div className="font-mono border-2 border-[var(--ink)] px-3 py-2 text-[11px] tracking-widest" data-testid="early-points">
+          <div className="font-mono flex items-center gap-2 border-2 border-[var(--ink)] px-3 py-2 text-[11px] tracking-widest" data-testid="early-points">
+            {participant.tier && <span className="font-pixel text-[9px]" style={{ color: TIERS[participant.tier].color }} data-testid="early-tier">{TIERS[participant.tier].label}</span>}
             @{participant.x_username} · {participant.points} PTS
           </div>
         )}
       </div>
+      {!registered && localStorage.getItem(REF_KEY) && (
+        <div className="font-mono mt-4 inline-block border border-[var(--accent)] px-3 py-1.5 text-[11px] tracking-widest text-[var(--ink-soft)]" data-testid="ref-banner">
+          INVITED BY @{localStorage.getItem(REF_KEY)} · +{s.referred_points} BONUS ON TICKET
+        </div>
+      )}
 
       <div className="mt-8 space-y-8">
         <Step n="1" title="Your X username" active={!registered && sub === 1} done={registered || sub > 1}>
@@ -153,6 +163,8 @@ const EarlyAccess = () => {
           {completed ? (
             <>
               <Ticket participant={participant} shareText={s.quote_text} />
+              <VipBox participant={participant} settings={s} onUpdate={setParticipant} />
+              <ReferralBox participant={participant} settings={s} />
               <DailyTasks tasks={config.daily_tasks} participant={participant} today={config.today} onComplete={completeDaily} />
               <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--line)] pt-6">
                 <Link to="/early-list" className="btn-outline !px-4 !py-3 !text-[10px]" data-testid="go-early-list"><ListOrdered size={12} /> VIEW EARLY LIST</Link>
