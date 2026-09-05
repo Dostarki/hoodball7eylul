@@ -1,4 +1,4 @@
-# Futbot League (hoodball) — PRD
+# GoalHoodz - Early (Futbot League / hoodball) — PRD
 
 ## Orijinal Problem
 "hoodball reposunu çek çalıştır" — Web3 tabanlı, 1-bit pixel art stilinde futbol oyunu (React + FastAPI + MongoDB). Kullanıcı dili: Türkçe.
@@ -25,6 +25,8 @@
   - VIP Bilet: bileti olan RainbowKit ile cüzdan bağlar → `GET /api/early/vip/nonce` → mesaj imzalar → `POST /api/early/vip/check` → Etherscan V2 (`ETHERSCAN_API_KEY`, free tier 3 çağrı/sn) ile 8 EVM zincirde (Ethereum, Arbitrum, Polygon, Linea, Blast, Gnosis, Mantle, Unichain — Base/OP/BNB/Avax free'de kapalı) son 100 tx native gönderim+alım USD hacmi → Bronze ≥$100 / Silver ≥$1k / Gold ≥$10k / Platinum ≥$50k, bonus 25/75/200/500 (admin ayarlı), 10 dk cooldown, kademe sadece yükselir.
   - Bilet canvas kademeye göre renk bandı + damga; Early List ve admin tablosunda TIER/REFS/VOL kolonları.
   - Test: /app/test_reports/iteration_2.json — 15/15 backend + frontend geçti.
+
+- 2026-06: Site adı "GoalHoodz - Early" olarak değiştirildi (tarayıcı başlığı, navbar, hero, footer, bilet başlığı, WalletConnect appName, quote metni).
 
 ## Backlog
 - P1 (kampanya sonrası): `GAME_LOCKED=false` ile oyunu geri aç

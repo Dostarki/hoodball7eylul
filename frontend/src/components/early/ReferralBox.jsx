@@ -18,7 +18,7 @@ const ReferralBox = ({ participant, settings }) => {
     setTimeout(() => setCopied(false), 1800);
   };
 
-  const share = () => window.open(tweetIntent(`Grab your Futbot League Early Access ticket with my link — we both earn bonus points.`, link), '_blank', 'noopener');
+  const share = () => window.open(tweetIntent(`Grab your GoalHoodz Early Access ticket with my link — we both earn bonus points.`, link), '_blank', 'noopener');
 
   return (
     <div className="mt-10 border-2 border-[var(--line)] bg-[var(--paper-2)] p-5" data-testid="referral-box">

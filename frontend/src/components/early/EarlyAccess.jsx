@@ -153,7 +153,7 @@ const EarlyAccess = () => {
 
         <Step n="3" title="X tasks" active={registered && !completed} done={completed}>
           <div className="space-y-3">
-            <TaskCard id="follow" title="Follow @goalhoodz" desc="Follow the official Futbot League account on X." points={s.follow_points} url={s.follow_url} done={!!participant?.tasks.follow} onComplete={complete} disabled={!registered} />
+            <TaskCard id="follow" title="Follow @goalhoodz" desc="Follow the official GoalHoodz account on X." points={s.follow_points} url={s.follow_url} done={!!participant?.tasks.follow} onComplete={complete} disabled={!registered} />
             <TaskCard id="rt" title="Repost & Like" desc="Repost and like the pinned announcement." points={s.rt_points} url={s.rt_url} done={!!participant?.tasks.rt} onComplete={complete} disabled={!registered} />
             <TaskCard id="quote" title="Quote post" desc={`"${s.quote_text}"`} points={s.quote_points} url={tweetIntent(s.quote_text, s.quote_url)} done={!!participant?.tasks.quote} onComplete={complete} disabled={!registered} />
           </div>

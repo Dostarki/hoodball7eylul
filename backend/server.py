@@ -25,7 +25,7 @@ db = client[os.environ['DB_NAME']]
 
 JWT_SECRET = os.environ.get('JWT_SECRET', 'dev-secret-change-me')
 CHAIN_ID = int(os.environ.get('CHAIN_ID', '4663'))
-APP_NAME = 'Futbot League'
+APP_NAME = 'GoalHoodz - Early'
 USERNAME_RE = re.compile(r'^[a-zA-Z0-9_]{3,16}$')
 
 CHAR_IDS = ['arc', 'mohawk', 'cap', 'afro', 'halo', 'spiky', 'glasses', 'crown']

@@ -98,7 +98,7 @@ export const drawTicket = (canvas, { participant, character, ballBitmap }) => {
   ctx.fillRect(72, 100, 12, 12);
   ctx.fillStyle = INK;
   ctx.font = '38px "Press Start 2P"';
-  ctx.fillText('FUTBOT LEAGUE', 100, 92);
+  ctx.fillText('GOALHOODZ', 100, 92);
   ctx.font = '16px "Press Start 2P"';
   ctx.fillStyle = tier ? TIER_COLOR : SOFT;
   ctx.fillText(tier ? `${tier.label} VIP TICKET` : 'EARLY ACCESS TICKET', 72, 152);

@@ -63,7 +63,7 @@ const connectors = connectorsForWallets(
       wallets: [rainbowWallet, walletConnectWallet, coinbaseWallet, trustWallet],
     },
   ],
-  { appName: 'Futbot League', projectId }
+  { appName: 'GoalHoodz - Early', projectId }
 );
 
 export const wagmiConfig = createConfig({

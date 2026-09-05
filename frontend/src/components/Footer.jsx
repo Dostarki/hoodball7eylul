@@ -5,11 +5,11 @@ const Footer = () => (
   <footer className="border-t border-[var(--line)] bg-[var(--paper)]">
     <div className="mx-auto grid max-w-[1400px] gap-10 px-5 py-14 md:grid-cols-[1.6fr_1fr_1fr] md:px-10">
       <div>
-        <div className="label mb-4">Futbot League</div>
+        <div className="label mb-4">GoalHoodz - Early</div>
         <p className="font-mono text-[12px] leading-6 text-[var(--ink-soft)]">
           1-bit head soccer league on Robinhood Chain. Ink on paper, ball on ink.
           <br />
-          &copy; 2025 Futbot League. All pixel characters are original artwork.
+          &copy; 2026 GoalHoodz. All pixel characters are original artwork.
         </p>
       </div>
       <div>

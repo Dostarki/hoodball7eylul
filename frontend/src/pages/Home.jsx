@@ -63,7 +63,8 @@ const Home = () => {
             Season 01 &middot; Robinhood Chain &middot; 60 seconds
           </div>
           <h1 className="font-pixel reveal reveal-2 text-[30px] leading-[1.15] tracking-tight sm:text-[46px] md:text-[60px]" data-testid="hero-title">
-            FUTBOT LEAGUE
+            GOALHOODZ
+            <span className="mt-3 block text-[14px] tracking-[0.3em] text-[var(--accent)] sm:text-[18px] md:text-[22px]">EARLY</span>
           </h1>
           <p className="reveal reveal-3 mx-auto mt-7 max-w-2xl text-[17px] leading-8 text-[var(--ink-soft)]">
             One bit, two colors, one ball. Connect your wallet, pick a pixel striker and take on rivals in

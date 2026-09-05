@@ -33,7 +33,7 @@ DEFAULT_SETTINGS = {
     'follow_points': 50,
     'rt_url': 'https://x.com/goalhoodz',
     'rt_points': 50,
-    'quote_text': 'I just secured my Early Access ticket for Futbot League - 1-bit head soccer on Robinhood Chain.',
+    'quote_text': 'I just secured my Early Access ticket for GoalHoodz - 1-bit head soccer on Robinhood Chain.',
     'quote_url': 'https://x.com/goalhoodz',
     'quote_points': 100,
     'referrer_points': 50,

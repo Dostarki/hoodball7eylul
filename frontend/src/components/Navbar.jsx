@@ -64,7 +64,7 @@ const Navbar = () => {
             <PixelSprite bitmap={BALL_BITMAP} scale={3} ink="var(--ink)" />
           </div>
           <div className="leading-none">
-            <div className="font-pixel text-[13px] tracking-wide">FUTBOT LEAGUE</div>
+            <div className="font-pixel text-[13px] tracking-wide">GOALHOODZ <span className="text-[var(--accent)]">EARLY</span></div>
             <div className="font-mono mt-1 text-[10px] tracking-[0.18em] text-[var(--ink-soft)]">1-Bit Head Soccer on Robinhood Chain</div>
           </div>
         </Link>
@@ -94,7 +94,7 @@ const Navbar = () => {
               </button>
             </SheetTrigger>
             <SheetContent side="right" className="w-72 border-l border-[var(--line)] bg-[var(--paper)]">
-              <div className="font-pixel mb-8 mt-2 text-xs">FUTBOT LEAGUE</div>
+              <div className="font-pixel mb-8 mt-2 text-xs">GOALHOODZ EARLY</div>
               <div className="flex flex-col gap-6">
                 {LINKS.map((l) => <NavItem key={l.to} link={l} className="text-sm" onNav={() => setOpen(false)} />)}
                 {!GAME_LOCKED && (
