@@ -9,10 +9,8 @@ const seeded = (seed) => () => {
   return seed / 4294967296;
 };
 
-const draw = (canvas) => {
+const draw = (canvas, w, h, { dense, radial }) => {
   const dpr = window.devicePixelRatio || 1;
-  const w = window.innerWidth;
-  const h = window.innerHeight;
   canvas.width = w * dpr;
   canvas.height = h * dpr;
   canvas.style.width = `${w}px`;
@@ -21,23 +19,30 @@ const draw = (canvas) => {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
 
-  const rnd = seeded(1907);
+  const rnd = seeded(dense ? 2026 : 1907);
   const step = CELL + GAP;
   const cols = Math.ceil(w / step);
   const rows = Math.ceil(h / step);
 
   for (let y = 0; y < rows; y++) {
     const t = y / rows;
-    const density = Math.pow(1 - t, 2.2) * 0.5 + 0.012;
+    const density = dense ? 0.85 : Math.pow(1 - t, 2.2) * 0.5 + 0.012;
     for (let x = 0; x < cols; x++) {
       const checker = (x + y) % 2 === 0;
       const r = rnd();
       if (r > density * (checker ? 1 : 0.55)) continue;
-      const shade = GREENS[Math.min(GREENS.length - 1, Math.floor(rnd() * GREENS.length * (0.6 + t)))];
-      ctx.fillStyle = shade;
-      ctx.globalAlpha = 0.22 + (1 - t) * 0.42;
+      const shadeIdx = dense ? Math.floor(rnd() * GREENS.length) : Math.floor(rnd() * GREENS.length * (0.6 + t));
+      ctx.fillStyle = GREENS[Math.min(GREENS.length - 1, shadeIdx)];
+      let alpha = dense ? 0.55 + rnd() * 0.35 : 0.22 + (1 - t) * 0.42;
+      if (radial) {
+        const dx = (x / cols - 0.5) * 2;
+        const dy = (y / rows - 0.5) * 2;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        alpha *= Math.max(0, 1 - Math.pow(d, 2.5));
+      }
+      ctx.globalAlpha = alpha;
       ctx.fillRect(x * step, y * step, CELL, CELL);
-      if (rnd() < 0.08 * (1 - t)) {
+      if (rnd() < (dense ? 0.12 : 0.08 * (1 - t))) {
         ctx.fillRect((x + 1) * step, y * step, CELL, CELL);
         ctx.fillRect(x * step, (y + 1) * step, CELL, CELL);
       }
@@ -46,32 +51,34 @@ const draw = (canvas) => {
   ctx.globalAlpha = 1;
 };
 
-export const PixelMesh = () => {
+export const PixelMesh = ({ dense = false, radial = false, className = 'pixel-mesh', testId = 'pixel-mesh-bg' }) => {
   const ref = useRef(null);
 
   useEffect(() => {
     const canvas = ref.current;
-    draw(canvas);
+    const target = dense ? canvas.parentElement : null;
+    const render = () => {
+      const w = target ? target.clientWidth : window.innerWidth;
+      const h = target ? target.clientHeight : window.innerHeight;
+      draw(canvas, w, h, { dense, radial });
+    };
+    render();
     let raf;
-    const onResize = () => {
+    const schedule = () => {
       cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => draw(canvas));
+      raf = requestAnimationFrame(render);
     };
-    window.addEventListener('resize', onResize);
+    const ro = target ? new ResizeObserver(schedule) : null;
+    if (ro) ro.observe(target);
+    else window.addEventListener('resize', schedule);
     return () => {
-      window.removeEventListener('resize', onResize);
+      if (ro) ro.disconnect();
+      else window.removeEventListener('resize', schedule);
       cancelAnimationFrame(raf);
     };
-  }, []);
+  }, [dense, radial]);
 
-  return (
-    <canvas
-      ref={ref}
-      data-testid="pixel-mesh-bg"
-      aria-hidden="true"
-      className="pixel-mesh"
-    />
-  );
+  return <canvas ref={ref} data-testid={testId} aria-hidden="true" className={className} />;
 };
 
 export default PixelMesh;

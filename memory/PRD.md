@@ -11,6 +11,7 @@
 ## Yapılanlar
 - 2026-06: Repo çekildi, .env dosyaları oluşturuldu, servisler çalışıyor, WalletConnect yapılandırıldı.
 - 2026-06: Yeşil "meshy pixel" arka plan eklendi — `frontend/src/components/PixelMesh.jsx` (canvas, üstte yoğun aşağı doğru seyrelen yeşil pikseller), `App.js` içine sabit (fixed, z-index -1) olarak yerleştirildi; stil `App.css` `.pixel-mesh`.
+- 2026-06: Ana sayfadaki karakter kartının arkasına yoğun, radyal solan yeşil pixel mesh eklendi (`PixelMesh` `dense radial` prop'ları, `Home.jsx`).
 
 ## Backlog
 - P1: Gol tekrarı (slow-motion replay)

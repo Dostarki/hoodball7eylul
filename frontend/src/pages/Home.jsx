@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Check } from 'lucide-react';
 import PixelSprite from '../components/PixelSprite';
+import PixelMesh from '../components/PixelMesh';
 import WalletGate from '../components/WalletGate';
 import { useAuth } from '../context/AuthContext';
 import { CHARACTERS, BALL_BITMAP, ARENAS, CONTROLS, FEATURES, getSelectedCharId, setSelectedCharId, getCharacter } from '../mock';
@@ -77,8 +78,11 @@ const Home = () => {
         </div>
 
         {/* Preview card */}
-        <div className="reveal reveal-4 mx-auto mt-16 w-full max-w-[340px]">
-          <div className="frame-card p-5">
+        <div className="reveal reveal-4 relative mx-auto mt-16 w-full max-w-[340px]">
+          <div className="pointer-events-none absolute -inset-x-24 -inset-y-14 sm:-inset-x-40 sm:-inset-y-20" data-testid="hero-card-mesh-wrap">
+            <PixelMesh dense radial className="pixel-mesh-local" testId="hero-card-pixel-mesh" />
+          </div>
+          <div className="frame-card relative p-5">
             <div className="pixel-frame relative flex h-[280px] items-end justify-center overflow-hidden">
               <div className="absolute bottom-10 left-3 h-20 w-12 border-r-[3px] border-t-[3px] border-[var(--ink)]" />
               <div className="absolute bottom-10 right-3 h-20 w-12 border-l-[3px] border-t-[3px] border-[var(--ink)]" />
