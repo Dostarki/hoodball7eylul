@@ -80,7 +80,7 @@ const Home = () => {
         {/* Preview card */}
         <div className="reveal reveal-4 relative mx-auto mt-16 w-full max-w-[340px]">
           <div className="pointer-events-none absolute -inset-x-24 -inset-y-14 sm:-inset-x-40 sm:-inset-y-20" data-testid="hero-card-mesh-wrap">
-            <PixelMesh dense radial className="pixel-mesh-local" testId="hero-card-pixel-mesh" />
+            <PixelMesh dense className="pixel-mesh-local" testId="hero-card-pixel-mesh" />
           </div>
           <div className="frame-card relative p-5">
             <div className="pixel-frame relative flex h-[280px] items-end justify-center overflow-hidden">
