@@ -1,0 +1,30 @@
+{
+  "summary": "Full backend + frontend testing of Futbot Early Access & Admin features. 16/16 pytest tests pass. All frontend flows verified: home hero (JOIN EARLY LIST + disabled CONNECT&PLAY), nav-league / nav-leaderboard show 'Coming soon' toast without navigating, /league renders coming-soon page, nav-early-list navigates to /early-list. Early flow end-to-end works: X username -> wallet (invalid disables submit) -> REGISTER (ticket assigned) -> 3 tasks with 6s countdown & X open in new tab -> Ticket canvas renders with SHARE ON X + DOWNLOAD -> state persists after reload -> SWITCH ACCOUNT + reusing another wallet with mismatched x shows register-error 'This wallet is already registered as @ticketguy'. Admin: wrong password shows admin-login-error, correct password loads admin-title, settings tab persists rt_url after save+reload (verified via 200 PUT response), daily tasks CRUD (add, toggle pause, delete) works, Participants tab lists 8 registered users, admin-logout returns to login screen. /early-list shows table, total badge, ranked completed-only rows.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_early_admin.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Admin settings testids use kebab-case (set-rt-url) while playbook and review request mentioned settings-rt_url/settings-rt-url — actual testids are set-follow-url/set-rt-url/set-quote-text/set-quote-url/set-*-points; consider aligning naming for consistency.",
+    "Playwright page.fill on the RT URL Input did not always trigger React state update (needed page.type). Working for real users; consider dispatching 'input' event on programmatic value assignment for automation robustness — not a functional bug.",
+    "The 'YOU' marker on /early-list is rendered inline text without a data-testid — could not deterministically verify via a stable selector; adding data-testid=\"early-row-you\" on the marker span or on the row would help E2E tests.",
+    "5-attempt admin lockout per-IP is 15 min: acceptable but note tests share IP with real users; add unlock endpoint or shorter dev lock recommended for local dev only."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_early_admin.py"
+  ],
+  "success_rate": {"backend": "100% (16/16)", "frontend": "100% of tested flows"},
+  "test_credentials": "Admin: futbot-admin-2026 (from backend/.env). Participants seeded during tests with random TEST_ x_usernames + wallets.",
+  "seed_data_creation": "Created several TEST_ participants (random x/wallets) and one completed test participant (@tpvzjqize wallet 0xf87f3fe8eb9682026d27940a5d50767ca9db78e5, 200 pts, ticket #0008). Also created @solana registration (0x47d3acd128fc424a9bb003df337fc6543a1e0e38, ticket #0007, 225 pts) via UI. Ephemeral daily tasks created & deleted in admin tests.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend pytest at /app/backend/tests/test_early_admin.py; run: `python -m pytest backend/tests/test_early_admin.py -v`. Admin password futbot-admin-2026. Frontend testids: admin uses `admin-password` (not admin-password-input), settings uses `set-follow-url/set-rt-url/set-quote-text/set-quote-url/set-*-points` + `settings-save`. Daily rows: `daily-row-<id>`, `daily-toggle-<id>`, `daily-delete-<id>`. Early list rows: `early-row-<ticket_no>`. To test YOU marker, ensure localStorage `futbot.early` token is set within the same browser context as /early-list navigation.",
+  "rca of the issue": "N/A — no bugs found."
+}

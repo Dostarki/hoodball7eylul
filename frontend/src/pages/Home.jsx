@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check, Lock, Ticket } from 'lucide-react';
 import PixelSprite from '../components/PixelSprite';
 import PixelMesh from '../components/PixelMesh';
 import WalletGate from '../components/WalletGate';
+import EarlyAccess from '../components/early/EarlyAccess';
 import { useAuth } from '../context/AuthContext';
+import { GAME_LOCKED } from '../lib/flags';
 import { CHARACTERS, BALL_BITMAP, ARENAS, CONTROLS, FEATURES, getSelectedCharId, setSelectedCharId, getCharacter } from '../mock';
 
 const StatBar = ({ label, value }) => (
@@ -68,12 +70,25 @@ const Home = () => {
             60-second head soccer matches. Every result is written to the global leaderboard.
           </p>
           <div className="reveal reveal-4 mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link to="/league" className="btn-ink" data-testid="hero-league-btn">
-              {ready ? 'ENTER THE LEAGUE' : 'CONNECT & PLAY'} <ArrowRight size={14} />
-            </Link>
-            <Link to="/play?mode=quick" className="btn-outline" data-testid="hero-quick-btn">
-              QUICK MATCH
-            </Link>
+            {GAME_LOCKED ? (
+              <>
+                <a href="#early" className="btn-ink" data-testid="hero-early-btn">
+                  <Ticket size={14} /> JOIN EARLY LIST <ArrowRight size={14} />
+                </a>
+                <button className="btn-outline cursor-not-allowed opacity-50" disabled title="Coming soon" data-testid="hero-league-btn">
+                  <Lock size={12} /> CONNECT & PLAY · SOON
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/league" className="btn-ink" data-testid="hero-league-btn">
+                  {ready ? 'ENTER THE LEAGUE' : 'CONNECT & PLAY'} <ArrowRight size={14} />
+                </Link>
+                <Link to="/play?mode=quick" className="btn-outline" data-testid="hero-quick-btn">
+                  QUICK MATCH
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
@@ -134,10 +149,16 @@ const Home = () => {
         </div>
       </div>
 
-      {!ready && (
-        <section className="mx-auto max-w-[1400px] px-5 py-20 md:px-10" id="connect">
-          <WalletGate title="Connect your wallet to unlock the pitch." subtitle="Futbot League runs on Robinhood Chain with ETH as native currency. Connect, sign in and pick your username to start playing." />
+      {GAME_LOCKED ? (
+        <section className="mx-auto max-w-[1400px] scroll-mt-20 px-5 py-20 md:px-10" id="early">
+          <EarlyAccess />
         </section>
+      ) : (
+        !ready && (
+          <section className="mx-auto max-w-[1400px] px-5 py-20 md:px-10" id="connect">
+            <WalletGate title="Connect your wallet to unlock the pitch." subtitle="Futbot League runs on Robinhood Chain with ETH as native currency. Connect, sign in and pick your username to start playing." />
+          </section>
+        )
       )}
 
       {/* About */}
@@ -206,7 +227,11 @@ const Home = () => {
                     <div className="font-pixel text-[12px]">{a.name}</div>
                     <p className="mt-2 text-[14px] leading-6 text-[var(--ink-soft)]">{a.desc}</p>
                   </div>
-                  <Link to={`/play?mode=quick&arena=${a.id}`} className="btn-outline shrink-0 !px-4 !py-3 !text-[10px]">PLAY</Link>
+                  {GAME_LOCKED ? (
+                    <button disabled className="btn-outline shrink-0 cursor-not-allowed !px-4 !py-3 !text-[10px] opacity-50" data-testid={`arena-play-${a.id}`}><Lock size={11} /> SOON</button>
+                  ) : (
+                    <Link to={`/play?mode=quick&arena=${a.id}`} className="btn-outline shrink-0 !px-4 !py-3 !text-[10px]">PLAY</Link>
+                  )}
                 </div>
               </div>
             ))}
@@ -240,7 +265,11 @@ const Home = () => {
             </ul>
           </div>
           <div className="mt-14 flex justify-center">
-            <Link to="/league" className="btn-ink">START THE SEASON <ArrowRight size={14} /></Link>
+            {GAME_LOCKED ? (
+              <button disabled className="btn-ink cursor-not-allowed opacity-50" data-testid="start-season-btn"><Lock size={12} /> SEASON OPENS SOON</button>
+            ) : (
+              <Link to="/league" className="btn-ink">START THE SEASON <ArrowRight size={14} /></Link>
+            )}
           </div>
         </div>
       </section>

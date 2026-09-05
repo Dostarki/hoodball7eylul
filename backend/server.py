@@ -379,7 +379,11 @@ async def leaderboard(limit: int = 50):
     return out
 
 
+import early as early_module  # noqa: E402
+
+early_module.db = db
 app.include_router(api)
+app.include_router(early_module.router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -400,6 +404,7 @@ async def ensure_indexes():
     await db.users.create_index('username_lc')
     await db.matches.create_index([('address', 1), ('played_at', -1)])
     await db.leagues.create_index([('address', 1), ('active', 1)])
+    await early_module.ensure_indexes()
 
 
 @app.on_event('shutdown')
