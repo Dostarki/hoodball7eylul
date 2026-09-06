@@ -1,0 +1,32 @@
+{
+  "summary": "Backend regression + bug-fix verification for POST /api/early/vip/check after ETHERSCAN_API_KEY was added to backend/.env. Wrote /app/backend/tests/test_vip_check.py covering end-to-end flow: register a fresh EOA -> complete 3 core tasks -> get VIP nonce -> sign -> vip/check. All 5 tests passed. The previous 503 'Volume check is not configured' error is GONE. Response returns HTTP 200 with volume_usd (0.0 for fresh wallet), tier, bonus_points, participant, and chains list containing all 8 expected chains (Ethereum, Arbitrum, Polygon, Linea, Blast, Gnosis, Mantle, Unichain) each with error == null. Negative checks verified: bogus signature on a fresh participant -> 401; second vip/check within cooldown window -> 429 'Already checked recently'.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/early/vip/check", "issue": "Cooldown (429) is evaluated BEFORE signature validation (401) and BEFORE nonce lookup. Reusing a participant after a successful check with a bad signature returns 429 instead of 401. Not a functional bug — just an order-of-checks observation. If stricter signature validation feedback is desired, move the 429 cooldown check after the signature+nonce checks."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_vip_check.py",
+    "/app/test_reports/pytest/pytest_vip_check.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "early.py:334 — 503 guard depends on ETHERSCAN_API_KEY env at request time; correct behavior, now satisfied.",
+    "early.py:339 — cooldown check ordered before signature/nonce verification (see minor issue above).",
+    "early.py:153-166 — etherscan() retries only rate-limit errors once; free-tier throttling (0.5s) may make vip/check take 10-20s. Working within limits.",
+    "early.py:346-350 — signature recovery is properly wrapped in try/except; good.",
+    "early.py: participant_view correctly excludes _id from Mongo docs."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_vip_check.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "not tested (skipped per request)"},
+  "test_credentials": "None required — early registration is open. Test wallets generated on the fly via eth_account.Account.create().",
+  "seed_data_creation": "Created 2 ephemeral participants (qa_vol_* and qa_bad_*) with random wallets during tests. They remain in Mongo (no cleanup fixture added since main agent didn't request it; test IDs are TEST-like prefixes).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "test_vip_check.py is the canonical regression for the ETHERSCAN_API_KEY bug fix. Run it any time backend .env or early.py vip logic changes. Etherscan free-tier is rate-limited so tests take ~10-12s total.",
+  "rca of the issue": "Root cause: ETHERSCAN_API_KEY was empty in /app/backend/.env, triggering the explicit 503 guard at early.py:334 in vip_check. Fix (already applied by user + main agent): added a valid Etherscan V2 API key to backend/.env and restarted backend. Verified: 5/5 tests pass; 200 OK returned with 8-chain response for a fresh wallet, all chain entries error == null."
+}
