@@ -58,7 +58,7 @@ const Home = () => {
       {/* HERO */}
       <section className="paper-noise relative mx-auto max-w-[1400px] px-5 pb-16 pt-20 md:px-10 md:pt-28">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="label reveal reveal-1 mb-6 flex items-center justify-center gap-3">
+          <div className="label reveal reveal-1 mb-6 flex items-center justify-center gap-3 !text-[var(--ink)] max-sm:text-[12px]" data-testid="hero-season-label">
             <span className="inline-block h-2 w-2 bg-[var(--accent)]" />
             Season 01 &middot; Robinhood Chain &middot; 60 seconds
           </div>
@@ -66,7 +66,7 @@ const Home = () => {
             GOALHOODZ
             <span className="mt-3 block text-[14px] tracking-[0.3em] text-[var(--accent)] sm:text-[18px] md:text-[22px]">EARLY</span>
           </h1>
-          <p className="reveal reveal-3 mx-auto mt-7 max-w-2xl text-[17px] leading-8 text-[var(--ink-soft)]">
+          <p className="reveal reveal-3 mx-auto mt-7 max-w-2xl text-[17px] font-medium leading-8 text-[var(--ink)] max-sm:text-[16px] max-sm:leading-7" data-testid="hero-description">
             One bit, two colors, one ball. Connect your wallet, pick a pixel striker and take on rivals in
             60-second head soccer matches. Every result is written to the global leaderboard.
           </p>

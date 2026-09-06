@@ -15,6 +15,7 @@
 - 2026-06: Frontend WalletConnect projectId hatası giderildi – `.env`'e PLACEHOLDER projectId eklendi; ana sayfa render oluyor
 
 - 2026-06: Kullanıcının Reown Dashboard'dan aldığı gerçek WalletConnect Project ID `.env`'e eklendi (placeholder kaldırıldı)
+- 2026-06: Mobil okunabilirlik – `--ink-soft` koyulaştırıldı (#45443f), hero etiket + açıklama paragrafı `--ink` rengine alındı
 
 ## Notlar / Backlog
 - P2: `ETHERSCAN_API_KEY` backend .env'e eklenmeli (opsiyonel, VIP tier / tx verisi)
