@@ -18,6 +18,8 @@
 - 2026-06: Mobil okunabilirlik – `--ink-soft` koyulaştırıldı (#45443f), hero etiket + açıklama paragrafı `--ink` rengine alındı
 - 2026-06: Etherscan V2 API anahtarı backend `.env`'e eklendi; Verify Volume (POST /api/early/vip/check) 8 zincirde çalışıyor – testing agent ile doğrulandı (iteration_3)
 - 2026-06: `.gitignore`'daki `.env` dışlama satırları kaldırıldı – canlı (goalhoodz.fun) 503 'Volume check is not configured' hatasının kökü buydu; kullanıcı yeniden deploy etmeli
+- 2026-06: Ana sayfaya "Roadmap" bölümü (#roadmap) + navbar linki eklendi – 5 faz (Early Access LIVE, NFT Access Pass NEXT, $GOALZ Rewards, Clubs, Beyond) bilgilendirme amaçlı; token/NFT üretimi yok. Detay: /app/memory/ROADMAP.md
+- Askıya alındı: bot önlemi (kullanıcı kararı)
 
 ## Notlar / Backlog
 - P2: ~~ETHERSCAN_API_KEY~~ eklendi (2026-06)

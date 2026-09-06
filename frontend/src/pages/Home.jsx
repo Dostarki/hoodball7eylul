@@ -5,6 +5,7 @@ import PixelSprite from '../components/PixelSprite';
 import PixelMesh from '../components/PixelMesh';
 import WalletGate from '../components/WalletGate';
 import EarlyAccess from '../components/early/EarlyAccess';
+import { Roadmap } from '../components/Roadmap';
 import { useAuth } from '../context/AuthContext';
 import { GAME_LOCKED } from '../lib/flags';
 import { CHARACTERS, BALL_BITMAP, ARENAS, CONTROLS, FEATURES, getSelectedCharId, setSelectedCharId, getCharacter } from '../mock';
@@ -239,6 +240,9 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* Roadmap */}
+      <Roadmap />
 
       {/* How to play */}
       <section id="how-to-play" className="border-t border-[var(--line)] bg-[var(--paper-2)]">

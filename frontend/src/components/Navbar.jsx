@@ -14,6 +14,7 @@ const LINKS = [
   { to: '/league', label: 'League', game: true },
   { to: '/leaderboard', label: 'Leaderboard', game: true },
   { to: '/#characters', label: 'Characters' },
+  { to: '/#roadmap', label: 'Roadmap' },
   { to: '/#how-to-play', label: 'How to Play' },
 ];
 
