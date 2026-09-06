@@ -461,9 +461,33 @@ async def admin_daily_delete(task_id: str, _=Depends(admin_guard)):
 
 
 @router.get('/admin/participants')
-async def admin_participants(_=Depends(admin_guard)):
-    rows = await db.early_participants.find().sort('created_at', -1).to_list(2000)
-    return [participant_view(p) for p in rows]
+async def admin_participants(q: str = '', sort: str = 'points', limit: int = 300, _=Depends(admin_guard)):
+    limit = max(1, min(limit, 1000))
+    flt: dict = {}
+    s = q.strip().lstrip('@#').lower()
+    if s:
+        rx = {'$regex': re.escape(s), '$options': 'i'}
+        ors = [{'x_username_lc': rx}, {'wallet': rx}]
+        if s.isdigit():
+            ors.append({'ticket_no': int(s)})
+        flt = {'$or': ors}
+    order = [('points', -1), ('completed_at', 1), ('created_at', 1)] if sort == 'points' else [('created_at', -1)]
+    rows = await db.early_participants.find(flt).sort(order).to_list(limit)
+    total = await db.early_participants.count_documents({})
+    completed_q = {'completed_at': {'$ne': None}}
+    completed = await db.early_participants.count_documents(completed_q)
+    out = []
+    for p in rows:
+        v = participant_view(p)
+        v['rank'] = None
+        if p.get('completed_at'):
+            v['rank'] = await db.early_participants.count_documents({
+                **completed_q,
+                '$or': [{'points': {'$gt': p.get('points', 0)}},
+                        {'points': p.get('points', 0), 'completed_at': {'$lt': p['completed_at']}}],
+            }) + 1
+        out.append(v)
+    return {'total': total, 'completed': completed, 'matched': len(out), 'rows': out}
 
 
 @router.put('/admin/participants/{pid}/points')
