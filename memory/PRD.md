@@ -20,6 +20,7 @@
 - 2026-06: `.gitignore`'daki `.env` dışlama satırları kaldırıldı – canlı (goalhoodz.fun) 503 'Volume check is not configured' hatasının kökü buydu; kullanıcı yeniden deploy etmeli
 - 2026-06: Ana sayfaya "Roadmap" bölümü (#roadmap) + navbar linki eklendi – 5 faz (Early Access LIVE, NFT Access Pass NEXT, $GOALZ Rewards, Clubs, Beyond) bilgilendirme amaçlı; token/NFT üretimi yok. Detay: /app/memory/ROADMAP.md
 - Askıya alındı: bot önlemi (kullanıcı kararı)
+- 2026-06: Admin > Participants: arama (@x / cüzdan / bilet no) + satır içi puan düzenleme (PUT /api/admin/participants/{id}/points)
 
 ## Notlar / Backlog
 - P2: ~~ETHERSCAN_API_KEY~~ eklendi (2026-06)

@@ -252,6 +252,10 @@ class DailyTaskBody(BaseModel):
     active: bool = True
 
 
+class PointsBody(BaseModel):
+    points: int = Field(ge=0, le=10_000_000)
+
+
 # ---------- public ----------
 @router.get('/early/config')
 async def early_config():
@@ -460,6 +464,15 @@ async def admin_daily_delete(task_id: str, _=Depends(admin_guard)):
 async def admin_participants(_=Depends(admin_guard)):
     rows = await db.early_participants.find().sort('created_at', -1).to_list(2000)
     return [participant_view(p) for p in rows]
+
+
+@router.put('/admin/participants/{pid}/points')
+async def admin_set_points(pid: str, body: PointsBody, _=Depends(admin_guard)):
+    p = await db.early_participants.find_one({'id': pid})
+    if not p:
+        raise HTTPException(404, 'Participant not found')
+    await db.early_participants.update_one({'id': pid}, {'$set': {'points': body.points, 'points_edited_at': now()}})
+    return participant_view(await db.early_participants.find_one({'id': pid}))
 
 
 async def ensure_indexes():
