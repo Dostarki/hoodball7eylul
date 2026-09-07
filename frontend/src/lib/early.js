@@ -3,6 +3,7 @@ import axios from 'axios';
 const BASE = `${process.env.REACT_APP_BACKEND_URL}/api`;
 export const EARLY_TOKEN = 'futbot.early';
 export const ADMIN_TOKEN = 'futbot.admin';
+export const COLLAB_TOKEN = 'futbot.collab';
 export const CLIENT_ID = 'futbot.cid';
 
 const clientId = () => {
@@ -27,6 +28,9 @@ const withToken = (key) => {
 
 export const earlyApi = withToken(EARLY_TOKEN);
 export const adminApi = withToken(ADMIN_TOKEN);
+export const collabApi = withToken(COLLAB_TOKEN);
+export const tweetId = (url) => (url || '').match(/status\/(\d+)/)?.[1] || null;
+export const shortWallet = (w) => `${w.slice(0, 6)}…${w.slice(-4)}`;
 
 export const tweetIntent = (text, url) =>
   `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}${url ? `&url=${encodeURIComponent(url)}` : ''}`;

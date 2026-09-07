@@ -1,0 +1,43 @@
+{
+  "summary": "Comprehensive backend + frontend testing of new COLLAB (whitelist partner) system. 17/18 backend pytest passed. Frontend end-to-end flow (admin create + code banner + rotate, partner login case-insensitive, add/remove wallet, remaining counters update, tweet save, session persistence via localStorage, logout, public ledger with X embed cards, no wallet leakage) all pass. Regression: Participants tab, navbar links, TEST/PIXEL BUNZ seeded collabs still intact. One CRITICAL backend bug found: brute-force lockout 6th attempt returns 500 (timezone-aware vs naive datetime compare on login_attempts.locked_until).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/collab/login",
+        "issue": "6th+ wrong attempt from same IP crashes with 500 instead of 429. Root cause: collab.py line ~179 compares `attempt['locked_until'] > now()`, but Motor returns tz-naive datetime from Mongo while early.now() is tz-aware UTC. TypeError: can't compare offset-naive and offset-aware datetimes. Fix: either store as `now().replace(tzinfo=None)` when writing, or wrap read with `.replace(tzinfo=timezone.utc)` before comparing. Same pattern likely used elsewhere in early.py for admin/user login attempts — recommend a shared helper.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "CollabPanel remaining counters", "issues": ["Rendered text is concatenated e.g. 'GTD remaining2' with no separator. Cosmetic but tight — consider space or line-break between label and value in collab-gtd-remaining/collab-fcfs-remaining."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_collab_iter6.py",
+    "/app/test_reports/pytest/pytest_iter6.xml"
+  ],
+  "action_items": [
+    "Fix timezone-aware vs naive datetime comparison in POST /api/collab/login lockout check (collab.py ~L179). Audit early.py for the same pattern in admin login and other login_attempts consumers.",
+    "(Optional) Improve CollabPanel remaining counter formatting so label and number are visually separated."
+  ],
+  "critical_code_review_comments": [
+    "Datetime tz handling inconsistency between Motor reads and `now()` in early.py causes 500s under lockout path. Normalize storage/read across all login_attempts consumers.",
+    "collab.py `clean_x` invoked without try/except in admin_update_collab — invalid owner_x currently returns 400 correctly, but the update happens after usage check; order looks fine. No _id leaks in responses (collab_view is explicit). Good.",
+    "collab.py depends on `early.now()` returning tz-aware; if seed or migrations write naive datetimes, other endpoints that compare with `now()` (JWT exp handled by pyjwt fine) or `code_rotated_at` (only serialized, not compared) are safe. Focus fix on locked_until."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_collab_iter6.py (new)"
+  ],
+  "success_rate": {"backend": "94% (17/18)", "frontend": "100% of tested critical flows"},
+  "test_credentials": "admin password admin123 from /app/memory/test_credentials.md",
+  "seed_data_creation": "Created & deleted TEST_UI_* collabs during pytest and UI tests. Existing TEST and PIXEL BUNZ collabs preserved intact.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend pytest at /app/backend/tests/test_collab_iter6.py covers admin CRUD, rotate, delete-cascades-wallets, partner login case/dash-insensitivity, brute-force lockout, wallet limits/duplicates, cross-collab wallet reuse, remove-wallet ownership check, tweet validation, and public ledger no-secrets. The lockout test uses distinct X-Forwarded-For (10.99.0.2) so it will NOT lock out UI tests. After fixing the datetime bug, only test_brute_force_lockout should flip green.",
+  "rca of the issue": "Reproduction: POST /api/collab/login with any invalid GH- code 5 times from a fixed X-Forwarded-For, then a 6th time. Expected 429, got 500. Backend log shows `TypeError: can't compare offset-naive and offset-aware datetimes` at collab.py:~179. Root cause: `now()` returns `datetime.now(timezone.utc)` (aware) but MongoDB via Motor returns the previously-stored `locked_until` as tz-naive. Mitigation: on read do `lu = attempt['locked_until']; if lu.tzinfo is None: lu = lu.replace(tzinfo=timezone.utc)` before comparing, OR store as naive UTC consistently. Preferred: wrap in `early.py` helper `to_utc(dt)` and use it everywhere login_attempts are read."
+}

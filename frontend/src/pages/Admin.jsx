@@ -4,6 +4,7 @@ import { Input } from '../components/ui/input';
 import SettingsForm from '../components/admin/SettingsForm';
 import DailyTasksPanel from '../components/admin/DailyTasksPanel';
 import ParticipantsTable from '../components/admin/ParticipantsTable';
+import CollabsPanel from '../components/admin/CollabsPanel';
 import { adminApi, ADMIN_TOKEN } from '../lib/early';
 import { errMsg } from '../lib/api';
 
@@ -11,6 +12,7 @@ const TABS = [
   ['settings', 'X Tasks'],
   ['daily', 'Daily Tasks'],
   ['participants', 'Participants'],
+  ['collabs', 'Collabs'],
 ];
 
 const Admin = () => {
@@ -87,6 +89,7 @@ const Admin = () => {
           {tab === 'settings' && <SettingsForm />}
           {tab === 'daily' && <DailyTasksPanel />}
           {tab === 'participants' && <ParticipantsTable />}
+          {tab === 'collabs' && <CollabsPanel />}
         </section>
       </div>
     </main>

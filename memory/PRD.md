@@ -29,6 +29,9 @@
 
 - 2026-09: **Toplu bot silme** (Admin > Participants): arama yanında CONTAINS / STARTS WITH (`?mode=prefix`) seçici; satır checkbox + tümünü seç → "DELETE N SELECTED"; arama metni varken "DELETE ALL N MATCHING" (aranan metni yazarak onay, aktif ALL/COMPLETED/PENDING filtresi de uygulanır, limit'ten bağımsız tüm DB eşleşmeleri silinir). API: `POST /api/admin/participants/bulk-delete` `{ids:[..]}` veya `{q,status,mode,confirm}`; `matched` artık gerçek DB sayısı. Testing agent iteration_5 ✅ (11/11 pytest + UI)
 
+- 2026-09: **Collab (whitelist partner) sistemi** — Navbar "COLLAB" → `/collab`. Admin > COLLABS sekmesi: collab adı + sahibinin X adı + GTD/FCFS kontenjan + opsiyonel X post linki → tek seferlik `GH-…` kod (bcrypt hash'li, lookup 8 karakter), SAVE / ROTATE CODE (eski oturumlar `ver` claim ile düşer) / DELETE / WALLETS. Public sayfa: "CONTROL THE ROSTER." hero, sağ üst **Collab Manager** → kod girişi → Partner Allocation paneli (kalan GTD/FCFS, cüzdan ekle/sil, limit sunucuda, aynı collab'da tekrar yok, farklı collab'da serbest, duyuru postu linki). Alt kısımda **FULL COLLAB LEDGER**: renkli kartlar, unavatar.io X avatarı, "N NFTS ALLOCATED", COLLAB APPROVED damgası, resmi X widget embed (yalnız sayılar, cüzdan yok). Backend `/app/backend/collab.py`; koleksiyonlar `collabs`, `collab_wallets`. Login brute-force 5/15dk (naive datetime bug düzeltildi, admin login'e de uygulandı). Testing agent iteration_6 ✅ (18/18 pytest + UI)
+- Not: X'te "@goalhoodz" etiketli postları otomatik arama yok (ücretli X API) — post linki admin/partner tarafından yapıştırılır (kullanıcı kararı).
+
 ## Notlar / Backlog
 - P2: ~~ETHERSCAN_API_KEY~~ eklendi (2026-06) — YENİDEN ÇEKİMDE KAYBOLDU, kullanıcıdan tekrar alınmalı (Verify Volume için)
 - P1: REACT_APP_WALLETCONNECT_PROJECT_ID şu an placeholder — WalletConnect (mobil) için gerçek ID gerekli

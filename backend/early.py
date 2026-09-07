@@ -47,12 +47,20 @@ def now():
     return datetime.now(timezone.utc)
 
 
+def aware(dt):
+    return dt if dt is None or dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def locked(attempt: Optional[dict]) -> bool:
+    return bool(attempt and attempt.get('count', 0) >= 5 and attempt.get('locked_until') and aware(attempt['locked_until']) > now())
+
+
 def today():
     return now().strftime('%Y-%m-%d')
 
 
-def make_token(sub: str, role: str, hours: int) -> str:
-    return jwt.encode({'sub': sub, 'role': role, 'exp': now() + timedelta(hours=hours)}, JWT_SECRET, algorithm='HS256')
+def make_token(sub: str, role: str, hours: int, **extra) -> str:
+    return jwt.encode({'sub': sub, 'role': role, 'exp': now() + timedelta(hours=hours), **extra}, JWT_SECRET, algorithm='HS256')
 
 
 def decode(authorization: Optional[str], role: str) -> dict:
@@ -434,7 +442,7 @@ async def early_list(limit: int = 200):
 async def admin_login(body: AdminLoginBody, request: Request):
     ip = request.client.host if request.client else 'unknown'
     attempt = await db.login_attempts.find_one({'identifier': f'admin:{ip}'})
-    if attempt and attempt.get('count', 0) >= 5 and attempt.get('locked_until') and attempt['locked_until'] > now():
+    if locked(attempt):
         raise HTTPException(429, 'Too many attempts. Try again in 15 minutes')
     expected = os.environ.get('ADMIN_PASSWORD', '')
     if not expected or not secrets.compare_digest(body.password, expected):

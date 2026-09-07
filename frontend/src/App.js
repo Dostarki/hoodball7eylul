@@ -11,6 +11,7 @@ import League from './pages/League';
 import Game from './pages/Game';
 import Leaderboard from './pages/Leaderboard';
 import EarlyList from './pages/EarlyList';
+import Collab from './pages/Collab';
 import Admin from './pages/Admin';
 import ComingSoon from './pages/ComingSoon';
 import { GAME_LOCKED } from './lib/flags';
@@ -26,6 +27,7 @@ const Layout = () => {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/early-list" element={<EarlyList />} />
+        <Route path="/collab" element={<Collab />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/league" element={gated(<League />)} />
         <Route path="/play" element={gated(<Game />)} />
