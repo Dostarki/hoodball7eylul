@@ -6,6 +6,7 @@ import { adminApi } from '../../lib/early';
 import { errMsg } from '../../lib/api';
 import CodeBanner from './CodeBanner';
 import CollabRow from './CollabRow';
+import ApplicationsPanel from './ApplicationsPanel';
 
 const cls = 'font-mono rounded-none border-2 border-[var(--ink)] bg-[var(--paper)] text-[13px] h-12';
 const EMPTY = { name: '', owner_x: '', gtd_spots: 0, fcfs_spots: 0, tweet_url: '' };
@@ -50,6 +51,11 @@ const CollabsPanel = () => {
       <div className="mt-4 border-t-2 border-[var(--ink)]" />
 
       {code && <div className="mt-6"><CodeBanner code={code} onDismiss={() => setCode('')} /></div>}
+
+      <div className="mt-6">
+        <ApplicationsPanel onApproved={(d) => { setRows((r) => [d.collab, ...(r || [])]); setCode(d.code); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
+      </div>
+      <div className="mt-8 border-t-2 border-[var(--ink)]" />
 
       <form onSubmit={create} className="mt-6 grid gap-4" data-testid="collab-create-form">
         <div className="grid gap-4 md:grid-cols-2">

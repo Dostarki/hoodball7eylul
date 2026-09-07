@@ -107,6 +107,95 @@ class TweetBody(BaseModel):
     tweet_url: str = ''
 
 
+class ApplyBody(BaseModel):
+    x_username: str
+    project_name: str = Field(default='', max_length=60)
+    gtd_requested: int = Field(ge=0, le=100000)
+    fcfs_requested: int = Field(ge=0, le=100000)
+    note: str = Field(default='', max_length=500)
+
+
+class ApproveBody(BaseModel):
+    name: Optional[str] = None
+    gtd_spots: Optional[int] = Field(default=None, ge=0, le=100000)
+    fcfs_spots: Optional[int] = Field(default=None, ge=0, le=100000)
+
+
+def application_view(a: dict) -> dict:
+    return {
+        'id': a['id'], 'x_username': a['x_username'], 'project_name': a.get('project_name', ''),
+        'gtd_requested': a['gtd_requested'], 'fcfs_requested': a['fcfs_requested'], 'note': a.get('note', ''),
+        'status': a['status'], 'created_at': a['created_at'].isoformat(), 'collab_id': a.get('collab_id'),
+    }
+
+
+# ---------- applications ----------
+@router.post('/collab/apply')
+async def collab_apply(body: ApplyBody, request: Request):
+    x = clean_x(body.x_username)
+    if body.gtd_requested + body.fcfs_requested < 1:
+        raise HTTPException(400, 'Request at least one GTD or FCFS spot')
+    if await db.collab_applications.find_one({'x_username_lc': x.lower(), 'status': 'pending'}):
+        raise HTTPException(409, 'A pending application already exists for this X account')
+    ip = request.headers.get('x-forwarded-for', '').split(',')[0].strip() or (request.client.host if request.client else 'unknown')
+    recent = await db.collab_applications.count_documents({'ip': ip, 'created_at': {'$gt': now() - timedelta(hours=1)}})
+    if recent >= 3:
+        raise HTTPException(429, 'Too many applications from this network. Try again later')
+    a = {
+        'id': str(uuid.uuid4()), 'x_username': x, 'x_username_lc': x.lower(), 'project_name': body.project_name.strip(),
+        'gtd_requested': body.gtd_requested, 'fcfs_requested': body.fcfs_requested, 'note': body.note.strip(),
+        'status': 'pending', 'ip': ip, 'created_at': now(),
+    }
+    await db.collab_applications.insert_one(a)
+    return application_view(a)
+
+
+@router.get('/admin/collab-applications')
+async def admin_applications(status: str = 'pending', _=Depends(admin_guard)):
+    flt = {} if status == 'all' else {'status': status}
+    rows = await db.collab_applications.find(flt).sort('created_at', -1).to_list(500)
+    return [application_view(a) for a in rows]
+
+
+@router.post('/admin/collab-applications/{aid}/approve')
+async def admin_approve_application(aid: str, body: ApproveBody, _=Depends(admin_guard)):
+    a = await db.collab_applications.find_one({'id': aid})
+    if not a:
+        raise HTTPException(404, 'Application not found')
+    if a['status'] != 'pending':
+        raise HTTPException(409, f"Application already {a['status']}")
+    name = (body.name or a.get('project_name') or a['x_username']).strip()
+    if len(name) < 2:
+        raise HTTPException(400, 'Collab name must be at least 2 chars')
+    code = gen_code()
+    c = {
+        'id': str(uuid.uuid4()), 'name': name, 'owner_x': a['x_username'],
+        'gtd_spots': a['gtd_requested'] if body.gtd_spots is None else body.gtd_spots,
+        'fcfs_spots': a['fcfs_requested'] if body.fcfs_spots is None else body.fcfs_spots, 'tweet_url': '',
+        'code_lookup': code[3:3 + LOOKUP_LEN], 'code_hash': hash_code(code), 'code_hint': code[:7] + '…',
+        'code_version': 1, 'created_at': now(), 'code_rotated_at': None, 'application_id': aid,
+    }
+    await db.collabs.insert_one(c)
+    await db.collab_applications.update_one({'id': aid}, {'$set': {'status': 'approved', 'collab_id': c['id'], 'decided_at': now()}})
+    return {'collab': await collab_view(c, admin=True), 'code': code}
+
+
+@router.post('/admin/collab-applications/{aid}/reject')
+async def admin_reject_application(aid: str, _=Depends(admin_guard)):
+    r = await db.collab_applications.update_one({'id': aid, 'status': 'pending'}, {'$set': {'status': 'rejected', 'decided_at': now()}})
+    if not r.matched_count:
+        raise HTTPException(404, 'Pending application not found')
+    return {'ok': True}
+
+
+@router.delete('/admin/collab-applications/{aid}')
+async def admin_delete_application(aid: str, _=Depends(admin_guard)):
+    r = await db.collab_applications.delete_one({'id': aid})
+    if not r.deleted_count:
+        raise HTTPException(404, 'Application not found')
+    return {'ok': True}
+
+
 # ---------- admin ----------
 @router.post('/admin/collabs')
 async def admin_create_collab(body: CollabBody, _=Depends(admin_guard)):
@@ -238,3 +327,5 @@ async def ensure_indexes():
     await db.collabs.create_index('code_lookup', unique=True)
     await db.collab_wallets.create_index([('collab_id', 1), ('wallet', 1)], unique=True)
     await db.collab_wallets.create_index('id', unique=True)
+    await db.collab_applications.create_index('id', unique=True)
+    await db.collab_applications.create_index([('status', 1), ('created_at', -1)])
