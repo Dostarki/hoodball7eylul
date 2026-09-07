@@ -278,6 +278,14 @@ class PointsBody(BaseModel):
     points: int = Field(ge=0, le=10_000_000)
 
 
+class BulkDeleteBody(BaseModel):
+    ids: Optional[list[str]] = None
+    q: str = ''
+    status: str = 'all'
+    mode: str = 'contains'
+    confirm: str = ''
+
+
 # ---------- public ----------
 @router.get('/early/config')
 async def early_config():
@@ -483,13 +491,12 @@ async def admin_daily_delete(task_id: str, _=Depends(admin_guard)):
     return {'ok': True}
 
 
-@router.get('/admin/participants')
-async def admin_participants(q: str = '', sort: str = 'points', status: str = 'all', limit: int = 300, _=Depends(admin_guard)):
-    limit = max(1, min(limit, 1000))
+def participants_filter(q: str, status: str, mode: str) -> dict:
     flt: dict = {}
     s = q.strip().lstrip('@#').lower()
     if s:
-        rx = {'$regex': re.escape(s), '$options': 'i'}
+        pat = re.escape(s)
+        rx = {'$regex': f'^{pat}' if mode == 'prefix' else pat, '$options': 'i'}
         ors = [{'x_username_lc': rx}, {'wallet': rx}]
         if s.isdigit():
             ors.append({'ticket_no': int(s)})
@@ -498,9 +505,17 @@ async def admin_participants(q: str = '', sort: str = 'points', status: str = 'a
         flt['completed_at'] = {'$ne': None}
     elif status == 'pending':
         flt['completed_at'] = None
+    return flt
+
+
+@router.get('/admin/participants')
+async def admin_participants(q: str = '', sort: str = 'points', status: str = 'all', mode: str = 'contains', limit: int = 300, _=Depends(admin_guard)):
+    limit = max(1, min(limit, 1000))
+    flt = participants_filter(q, status, mode)
     order = [('points', -1), ('completed_at', 1), ('created_at', 1)] if sort == 'points' else [('created_at', -1)]
     rows = await db.early_participants.find(flt).sort(order).to_list(limit)
     total = await db.early_participants.count_documents({})
+    matched = await db.early_participants.count_documents(flt)
     completed_q = {'completed_at': {'$ne': None}}
     completed = await db.early_participants.count_documents(completed_q)
     out = []
@@ -514,7 +529,7 @@ async def admin_participants(q: str = '', sort: str = 'points', status: str = 'a
                         {'points': p.get('points', 0), 'completed_at': {'$lt': p['completed_at']}}],
             }) + 1
         out.append(v)
-    return {'total': total, 'completed': completed, 'matched': len(out), 'rows': out}
+    return {'total': total, 'completed': completed, 'matched': matched, 'rows': out}
 
 
 @router.put('/admin/participants/{pid}/points')
@@ -533,6 +548,27 @@ async def admin_delete_participant(pid: str, _=Depends(admin_guard)):
         raise HTTPException(404, 'Participant not found')
     await db.nonces.delete_many({'participant_id': pid})
     return {'ok': True}
+
+
+@router.post('/admin/participants/bulk-delete')
+async def admin_bulk_delete(body: BulkDeleteBody, _=Depends(admin_guard)):
+    if body.ids is not None:
+        if not body.ids:
+            raise HTTPException(400, 'No participants selected')
+        flt = {'id': {'$in': body.ids[:1000]}}
+    else:
+        q = body.q.strip()
+        if not q.lstrip('@#'):
+            raise HTTPException(400, 'Search text is required for bulk delete')
+        if body.confirm.strip() != q:
+            raise HTTPException(400, 'Confirmation text does not match')
+        flt = participants_filter(q, body.status, body.mode)
+    ids = [p['id'] async for p in db.early_participants.find(flt, {'id': 1})]
+    if not ids:
+        return {'deleted': 0}
+    r = await db.early_participants.delete_many({'id': {'$in': ids}})
+    await db.nonces.delete_many({'participant_id': {'$in': ids}})
+    return {'deleted': r.deleted_count}
 
 
 async def ensure_indexes():

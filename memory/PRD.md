@@ -27,6 +27,8 @@
 - 2026-09: Admin > Participants düzeltildi (frontend eski dizi formatını bekliyordu → `{rows,total,completed,matched}` okunuyor). Puan sıralaması + RANK sütunu, ALL/COMPLETED/PENDING filtresi (`?status=`), sunucu taraflı arama, onaylı kullanıcı silme (`DELETE /api/admin/participants/{id}`).
 - 2026-09: Bot engeli: `POST /api/early/register` aynı IP **ve** aynı tarayıcı (`X-Client-Id`, localStorage `futbot.cid`) için 60 sn'de 1 gönderim → 429. `rate_limits` koleksiyonu TTL indeksli. Geçersiz giriş (400) limiti tüketmez. Testing agent iteration_4 ✅
 
+- 2026-09: **Toplu bot silme** (Admin > Participants): arama yanında CONTAINS / STARTS WITH (`?mode=prefix`) seçici; satır checkbox + tümünü seç → "DELETE N SELECTED"; arama metni varken "DELETE ALL N MATCHING" (aranan metni yazarak onay, aktif ALL/COMPLETED/PENDING filtresi de uygulanır, limit'ten bağımsız tüm DB eşleşmeleri silinir). API: `POST /api/admin/participants/bulk-delete` `{ids:[..]}` veya `{q,status,mode,confirm}`; `matched` artık gerçek DB sayısı. Testing agent iteration_5 ✅ (11/11 pytest + UI)
+
 ## Notlar / Backlog
 - P2: ~~ETHERSCAN_API_KEY~~ eklendi (2026-06) — YENİDEN ÇEKİMDE KAYBOLDU, kullanıcıdan tekrar alınmalı (Verify Volume için)
 - P1: REACT_APP_WALLETCONNECT_PROJECT_ID şu an placeholder — WalletConnect (mobil) için gerçek ID gerekli

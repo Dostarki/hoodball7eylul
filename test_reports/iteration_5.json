@@ -1,0 +1,23 @@
+{
+  "summary": "Iteration 5: bulk-delete participants (backend + frontend). All 11 backend pytest cases passed; UI flows for mode toggle, matching bulk delete with typed-confirm, checkbox select-all + N-selected delete, and single-row regression verified end-to-end.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_early_iter5.py",
+    "/app/test_reports/pytest/pytest_iter5.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "BulkDelete run() uses onDone(r.data.deleted) but ParticipantsTable passes onDone={load} which ignores the arg — harmless but inconsistent.",
+    "AlertDialogAction with onClick that returns fast may auto-close the dialog before request completes on slow networks; busy flag mitigates but no visual guard against double-open. Consider preventing onOpenChange while busy.",
+    "participants_filter builds regex on q even when q begins with '@#' only (edge case: q='@' -> lstrip yields '' so `if s:` correctly skips — OK). No injection issue since re.escape used."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (11/11)", "frontend": "100% for tested flows"},
+  "test_credentials": "admin password: admin123 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Created transient prefixed participants (tbot5_*, uibot_*, uisel_*) via /api/early/register with rotating X-Forwarded-For + X-Client-Id. All test-created data cleaned via bulk-delete at end of each test / UI flow.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend tests: /app/backend/tests/test_early_iter5.py covers mode contains vs prefix, matched=DB-count, empty q 400, bad confirm 400, query bulk-delete success, status=pending keeps completed, ids-mode success, empty ids 400, unknown ids -> 0 deleted, no auth 401/403, and JWT invalidation via /early/me. All pass. UI verified: participants-mode-{contains,prefix}, participants-search, bulk-actions-bar, bulk-delete-matching-btn/dialog/confirm-input/confirm (disabled until typed==term), bulk-delete-selected-btn/dialog/confirm (no confirm input), participants-select-all and participant-select-{ticket_no}, selection resets after reload. Toast uses 'sonner' li[role=status]. Rate limit bypass: use localhost:8001 with unique X-Forwarded-For + X-Client-Id per registration.",
+  "rca of the issue": "N/A – feature works as specified."
+}
