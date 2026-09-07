@@ -11,7 +11,7 @@ import { GAME_LOCKED, SOON_MSG } from '../lib/flags';
 const LINKS = [
   { to: '/', label: 'Home' },
   { to: '/early-list', label: 'Early List' },
-  { to: '/collab', label: 'Collab' },
+  { to: '/collabs', label: 'Collabs' },
   { to: '/league', label: 'League', game: true },
   { to: '/leaderboard', label: 'Leaderboard', game: true },
   { to: '/#characters', label: 'Characters' },

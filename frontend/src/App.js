@@ -1,6 +1,6 @@
 import React from 'react';
 import './App.css';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -27,7 +27,8 @@ const Layout = () => {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/early-list" element={<EarlyList />} />
-        <Route path="/collab" element={<Collab />} />
+        <Route path="/collabs" element={<Collab />} />
+        <Route path="/collab" element={<Navigate to="/collabs" replace />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/league" element={gated(<League />)} />
         <Route path="/play" element={gated(<Game />)} />
