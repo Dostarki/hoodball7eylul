@@ -24,6 +24,9 @@
 
 - 2026-09: Repo yeniden çekilip çalıştırıldı. `.env` dosyaları (gitignore'da olduğu için) yeniden oluşturuldu: backend/.env (MONGO_URL local, DB_NAME, JWT_SECRET, CHAIN_ID=4663, CORS_ORIGINS, ADMIN_PASSWORD=admin123, ETHERSCAN_API_KEY boş) ve frontend/.env (REACT_APP_BACKEND_URL preview, WALLETCONNECT_PROJECT_ID placeholder). Bağımlılıklar kuruldu (emergentintegrations/litellm çakışması: backend bunları kullanmadığı için hariç bırakıldı). Tüm servisler RUNNING, ana sayfa render oluyor, /api 200 OK.
 
+- 2026-09: Admin > Participants düzeltildi (frontend eski dizi formatını bekliyordu → `{rows,total,completed,matched}` okunuyor). Puan sıralaması + RANK sütunu, ALL/COMPLETED/PENDING filtresi (`?status=`), sunucu taraflı arama, onaylı kullanıcı silme (`DELETE /api/admin/participants/{id}`).
+- 2026-09: Bot engeli: `POST /api/early/register` aynı IP **ve** aynı tarayıcı (`X-Client-Id`, localStorage `futbot.cid`) için 60 sn'de 1 gönderim → 429. `rate_limits` koleksiyonu TTL indeksli. Geçersiz giriş (400) limiti tüketmez. Testing agent iteration_4 ✅
+
 ## Notlar / Backlog
 - P2: ~~ETHERSCAN_API_KEY~~ eklendi (2026-06) — YENİDEN ÇEKİMDE KAYBOLDU, kullanıcıdan tekrar alınmalı (Verify Volume için)
 - P1: REACT_APP_WALLETCONNECT_PROJECT_ID şu an placeholder — WalletConnect (mobil) için gerçek ID gerekli

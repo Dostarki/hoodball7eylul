@@ -3,12 +3,23 @@ import axios from 'axios';
 const BASE = `${process.env.REACT_APP_BACKEND_URL}/api`;
 export const EARLY_TOKEN = 'futbot.early';
 export const ADMIN_TOKEN = 'futbot.admin';
+export const CLIENT_ID = 'futbot.cid';
+
+const clientId = () => {
+  let id = localStorage.getItem(CLIENT_ID);
+  if (!id) {
+    id = (window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/-/g, '');
+    localStorage.setItem(CLIENT_ID, id);
+  }
+  return id;
+};
 
 const withToken = (key) => {
   const inst = axios.create({ baseURL: BASE });
   inst.interceptors.request.use((cfg) => {
     const t = localStorage.getItem(key);
     if (t) cfg.headers.Authorization = `Bearer ${t}`;
+    if (key === EARLY_TOKEN) cfg.headers['X-Client-Id'] = clientId();
     return cfg;
   });
   return inst;

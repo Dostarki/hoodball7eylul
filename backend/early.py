@@ -201,6 +201,28 @@ async def wallet_volume(address: str) -> dict:
     return {'total_usd': round(sum(c['usd'] for c in chains), 2), 'chains': chains}
 
 
+REGISTER_COOLDOWN_SEC = 60
+
+
+def client_ip(request: Request) -> str:
+    fwd = request.headers.get('x-forwarded-for', '')
+    return fwd.split(',')[0].strip() if fwd else (request.client.host if request.client else 'unknown')
+
+
+async def register_rate_limit(request: Request, client_id: Optional[str]):
+    keys = [f'ip:{client_ip(request)}']
+    if client_id and 8 <= len(client_id) <= 64:
+        keys.append(f'cid:{client_id}')
+    hit = await db.rate_limits.find_one({'key': {'$in': keys}, 'expires_at': {'$gt': now()}}, sort=[('expires_at', -1)])
+    if hit:
+        exp = hit['expires_at'] if hit['expires_at'].tzinfo else hit['expires_at'].replace(tzinfo=timezone.utc)
+        wait = max(1, int((exp - now()).total_seconds()) + 1)
+        raise HTTPException(429, f'Too many submissions. Try again in {wait} seconds')
+    exp = now() + timedelta(seconds=REGISTER_COOLDOWN_SEC)
+    for k in keys:
+        await db.rate_limits.update_one({'key': k}, {'$set': {'expires_at': exp}}, upsert=True)
+
+
 def daily_view(t: dict) -> dict:
     return {
         'id': t['id'], 'title': t['title'], 'url': t.get('url', ''), 'points': t['points'],
@@ -265,12 +287,13 @@ async def early_config():
 
 
 @router.post('/early/register')
-async def early_register(body: RegisterBody):
+async def early_register(body: RegisterBody, request: Request, x_client_id: Optional[str] = Header(None)):
     x = body.x_username.strip().lstrip('@')
     if not X_RE.match(x):
         raise HTTPException(400, 'X username must be 1-15 chars: letters, numbers, underscore')
     if not WALLET_RE.match(body.wallet.strip()):
         raise HTTPException(400, 'Wallet must be a valid 0x address (42 chars)')
+    await register_rate_limit(request, x_client_id)
     wallet = body.wallet.strip().lower()
     p = await db.early_participants.find_one({'wallet': wallet})
     if p:
@@ -461,7 +484,7 @@ async def admin_daily_delete(task_id: str, _=Depends(admin_guard)):
 
 
 @router.get('/admin/participants')
-async def admin_participants(q: str = '', sort: str = 'points', limit: int = 300, _=Depends(admin_guard)):
+async def admin_participants(q: str = '', sort: str = 'points', status: str = 'all', limit: int = 300, _=Depends(admin_guard)):
     limit = max(1, min(limit, 1000))
     flt: dict = {}
     s = q.strip().lstrip('@#').lower()
@@ -471,6 +494,10 @@ async def admin_participants(q: str = '', sort: str = 'points', limit: int = 300
         if s.isdigit():
             ors.append({'ticket_no': int(s)})
         flt = {'$or': ors}
+    if status == 'completed':
+        flt['completed_at'] = {'$ne': None}
+    elif status == 'pending':
+        flt['completed_at'] = None
     order = [('points', -1), ('completed_at', 1), ('created_at', 1)] if sort == 'points' else [('created_at', -1)]
     rows = await db.early_participants.find(flt).sort(order).to_list(limit)
     total = await db.early_participants.count_documents({})
@@ -499,9 +526,20 @@ async def admin_set_points(pid: str, body: PointsBody, _=Depends(admin_guard)):
     return participant_view(await db.early_participants.find_one({'id': pid}))
 
 
+@router.delete('/admin/participants/{pid}')
+async def admin_delete_participant(pid: str, _=Depends(admin_guard)):
+    r = await db.early_participants.delete_one({'id': pid})
+    if not r.deleted_count:
+        raise HTTPException(404, 'Participant not found')
+    await db.nonces.delete_many({'participant_id': pid})
+    return {'ok': True}
+
+
 async def ensure_indexes():
     await db.early_participants.create_index('wallet', unique=True)
     await db.early_participants.create_index('x_username_lc', unique=True)
     await db.early_participants.create_index([('points', -1), ('completed_at', 1)])
     await db.early_daily_tasks.create_index('id', unique=True)
     await db.login_attempts.create_index('identifier')
+    await db.rate_limits.create_index('key', unique=True)
+    await db.rate_limits.create_index('expires_at', expireAfterSeconds=0)

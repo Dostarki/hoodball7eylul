@@ -1,0 +1,24 @@
+{
+  "summary": "Iteration 4 (register rate-limit + admin/participants shape/filter/search + delete + frontend UX) tested end-to-end. Backend: 13/13 pytest cases passed (test_early_iter4.py) — hit localhost:8001 with varied X-Forwarded-For / X-Client-Id to bypass the 60s per-key limit. Frontend: /admin login (admin123) → Participants tab loads, RANK column present, count line 'N SHOWN · N REGISTERED · N COMPLETED · N PENDING' rendered via participants-count, ALL/COMPLETED/PENDING filters work (completed rows have #rank, pending show —), server-side search sends `q=` and shows empty state, delete opens confirm dialog, cancel + confirm both work, row disappears and counts decrement. Home page early-access form: X-Client-Id header (from localStorage 'futbot.cid') is sent on every /api/early/register call, and a second submit within 60s renders 'Too many submissions. Try again in N seconds' inside data-testid=register-error.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_early_iter4.py",
+    "/app/test_reports/pytest/pytest_iter4.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "early.py:212-223 (register_rate_limit): correct — validation runs BEFORE rate-limit registration, so a 400 does NOT consume the window. Verified by test_invalid_wallet_does_not_consume_limit + test_invalid_x_does_not_consume_limit.",
+    "early.py:216 sort=[('expires_at', -1)] picks the longest-lived entry so the message reports the accurate 'try again in N seconds' number. Good.",
+    "early.py:487-517 admin_participants: rank is computed per-row with a count_documents call. For 10-50 participants this is fine but O(N) round-trips will hurt at scale (>1k rows) — consider computing rank client-side from the already-sorted list, or use an aggregation with $setWindowFields.",
+    "test_credentials.md says admin password is 'admin123' — old /app/backend/tests/test_early_admin.py still hardcodes 'futbot-admin-2026' and will fail if re-run. Non-blocking (not part of this iteration) but flag for main agent."
+  ],
+  "updated_files": ["/app/backend/tests/test_early_iter4.py (new)"],
+  "success_rate": {"backend": "100% (13/13)", "frontend": "100%"},
+  "test_credentials": "Admin password admin123 (matches backend/.env ADMIN_PASSWORD, matches /app/memory/test_credentials.md).",
+  "seed_data_creation": "Test class TestAdminParticipants creates 4 ephemeral participants (3 completed, 1 pending) and cleans them up via DELETE /api/admin/participants/{id} at teardown. TestDelete creates + deletes 1 more. Rate-limit tests create ~5 permanent participants with random @X + wallets — they remain in the DB but can be pruned by admin if desired.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Use LOCAL http://localhost:8001 for any rate-limit tests so you can vary X-Forwarded-For and X-Client-Id per request. Public preview URL sits behind ingress and collapses to a single IP so you can only easily verify 1 register per 60s from the browser. Old test_early_admin.py has a stale admin password (futbot-admin-2026); admin_password is admin123 as of iteration_4.",
+  "rca of the issue": "N/A — no defects found in this iteration."
+}
