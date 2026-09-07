@@ -22,5 +22,8 @@
 - Askıya alındı: bot önlemi (kullanıcı kararı)
 - 2026-06: Admin > Participants: arama (@x / cüzdan / bilet no) + satır içi puan düzenleme (PUT /api/admin/participants/{id}/points)
 
+- 2026-09: Repo yeniden çekilip çalıştırıldı. `.env` dosyaları (gitignore'da olduğu için) yeniden oluşturuldu: backend/.env (MONGO_URL local, DB_NAME, JWT_SECRET, CHAIN_ID=4663, CORS_ORIGINS, ADMIN_PASSWORD=admin123, ETHERSCAN_API_KEY boş) ve frontend/.env (REACT_APP_BACKEND_URL preview, WALLETCONNECT_PROJECT_ID placeholder). Bağımlılıklar kuruldu (emergentintegrations/litellm çakışması: backend bunları kullanmadığı için hariç bırakıldı). Tüm servisler RUNNING, ana sayfa render oluyor, /api 200 OK.
+
 ## Notlar / Backlog
-- P2: ~~ETHERSCAN_API_KEY~~ eklendi (2026-06)
+- P2: ~~ETHERSCAN_API_KEY~~ eklendi (2026-06) — YENİDEN ÇEKİMDE KAYBOLDU, kullanıcıdan tekrar alınmalı (Verify Volume için)
+- P1: REACT_APP_WALLETCONNECT_PROJECT_ID şu an placeholder — WalletConnect (mobil) için gerçek ID gerekli
